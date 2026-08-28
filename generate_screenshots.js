@@ -40,34 +40,31 @@ const fs = require('fs');
     await page.waitForTimeout(1000);
     await page.screenshot({ path: 'assets/overview.png' });
     
-    // Track Screen (e.g. 100m)
+    // Track Screen
     console.log('Taking track screenshot...');
-    // Find a track event in the sidebar (Usually "100 metri")
     const buttons = await page.$$('.nav-link');
     for (let btn of buttons) {
         const text = await btn.innerText();
-        if (text.includes('100 metri UOMINI') || text.includes('200 metri')) {
+        if (text.toLowerCase().includes('metri') || text.toLowerCase().includes('corsa')) {
             await btn.click();
             await page.waitForTimeout(1000);
-            
-            // click generate
-            await page.click('button:has-text("Genera Serie")');
+            const genBtn = await page.$('button:has-text("Genera")');
+            if(genBtn) await genBtn.click();
             await page.waitForTimeout(500);
             await page.screenshot({ path: 'assets/track.png' });
             break;
         }
     }
     
-    // Field Screen (e.g. Salto)
+    // Field Screen
     console.log('Taking field screenshot...');
     for (let btn of buttons) {
         const text = await btn.innerText();
-        if (text.includes('Salto in') || text.includes('Lungo') || text.includes('Giavellotto')) {
+        if (text.toLowerCase().includes('salto') || text.toLowerCase().includes('lungo') || text.toLowerCase().includes('peso') || text.toLowerCase().includes('disco')) {
             await btn.click();
             await page.waitForTimeout(1000);
-            
-            // click generate
-            await page.click('button:has-text("Genera Start List")');
+            const genBtn = await page.$('button:has-text("Genera")');
+            if(genBtn) await genBtn.click();
             await page.waitForTimeout(500);
             await page.screenshot({ path: 'assets/field.png' });
             break;
