@@ -6,7 +6,7 @@ if (fs.existsSync('meeting_info.json')) {
     meetingInfo = JSON.parse(fs.readFileSync('meeting_info.json', 'utf8'));
 }
 
-const html = \`
+const html = `
 <!DOCTYPE html>
 <html lang="it">
 <head>
