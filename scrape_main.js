@@ -32,7 +32,7 @@ const BASE_URL = INDEX_URL.substring(0, INDEX_URL.lastIndexOf('/') + 1);
     await page.waitForTimeout(1500); 
 
     const meetingName = await page.$eval('header h4 strong', el => el.innerText.trim()).catch(() => "Meeting FIDAL");
-    fs.writeFileSync('meeting_info.json', JSON.stringify({ name: meetingName }));
+    fs.writeFileSync('meeting_info.json', JSON.stringify({ name: meetingName, url: INDEX_URL }));
     console.log(`Meeting: ${meetingName}`);
 
     const links = await page.$$eval("a[href^='GaraL']", elements => 

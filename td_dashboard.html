@@ -134,8 +134,14 @@
             
             // If injected, select it
             if (window.__INJECTED_MEETING__) {
-                const match = window.__INJECTED_MEETING__.info.url.match(/(REG\d+|COD\d+)/i);
-                if (match) sel.value = match[0].toUpperCase();
+                const url = window.__INJECTED_MEETING__.info.url || "";
+                const match = url.match(/(REG\d+|COD\d+)/i);
+                if (match) {
+                    sel.value = match[0].toUpperCase();
+                } else {
+                    // Fallback to "default" if no code is found
+                    sel.value = "default";
+                }
             }
             
             await switchMeeting();
@@ -784,16 +790,7 @@ function timeToSeconds(t) {
                     </div>
                 </div>
             </div>
-            
-            <div class="card mt-2 shadow-sm border-secondary">
-                <div class="card-header bg-secondary text-white fw-bold">
-                    Anteprima Database WA (Se supportato dal browser)
-                </div>
-                <div class="card-body p-0 bg-light" style="min-height: 500px">
-                    <iframe src="https://certcheck.worldathletics.org/" width="100%" height="600px" style="border:none;"></iframe>
-                </div>
-            </div>
-            \`;
+            `;
             
             document.getElementById('main-content').innerHTML = html;
         }
@@ -1168,91 +1165,3 @@ function timeToSeconds(t) {
     </script>
 </body>
 </html>
-\n
-        async function showRace(index, btn) {
-            clearActiveNav();
-            if(btn) btn.classList.add('active');
-            
-            const race = currentMeeting.data[index];
-            const field = isFieldEvent(race.nome_gara);
-            const middleDist = isMiddleDistance(race.nome_gara);
-            const estTime = estimateDuration(race.nome_gara, race.numero_iscritti, middleDist, null);
-            
-            const raceDb = await db.races.get(currentMeeting.id + '_' + race.nome_gara);
-            const schedTime = raceDb ? raceDb.scheduledTime : '';
-            
-            let html = `<div class="d-flex justify-content-between align-items-center">
-                <h2>${race.nome_gara}</h2>
-                <div>
-                    <span id="est-time-${index}" class="badge bg-info fs-6 me-2">⏱ Stima: ${Math.round(estTime)} min</span>
-                    <div class="input-group input-group-sm d-inline-flex w-auto d-print-none">
-                        <span class="input-group-text">Orario:</span>
-                        <input type="time" class="form-control" id="sched-time-${index}" value="${schedTime}" onchange="saveRaceTime('${race.nome_gara.replace(/'/g, "\\'")}', this.value)">
-                    </div>
-                </div>
-            </div><hr>`;
-            
-            if (race.numero_iscritti === 0) {
-                html += `<div class="alert alert-info">Nessun iscritto a questa gara.</div>`;
-                document.getElementById('main-content').innerHTML = html;
-                return;
-            }
-
-            if (field) {
-                const lower = race.nome_gara.toLowerCase();
-                const vertical = lower.includes('alto') || lower.includes('asta');
-                html += `
-                <div class="card p-3 mb-4 d-print-none">
-                    <h5>Impostazioni Pedana (WA TR 25 ${vertical ? '& TR 26' : ''})</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Criterio Ordine di Partenza:</label>
-                        <select id="field-order-${index}" class="form-select">
-                            <option value="inverse">Ordine Inverso di Accredito (Consigliato Finali)</option>
-                            <option value="random">Ordine Casuale (Consigliato Qualificazioni)</option>
-                        </select>
-                    </div>`;
-                    
-                if (vertical) {
-                    html += `
-                    <div class="mb-3">
-                        <label class="form-label">Progressione Misure (TR 26.1):</label>
-                        <input type="text" id="progression-${index}" class="form-control" placeholder="Es. 1.80 1.85 1.90 1.93" onkeyup="validateProgression(this, '${race.nome_gara.replace(/'/g, "\\'")}')">
-                        <div id="progression-feedback-${index}" class="form-text">Inserisci le misure separate da spazio o virgola. Saranno stampate sul foglio gara.</div>
-                    </div>`;
-                }
-                    
-                html += `<button class="btn btn-primary" onclick="generateField(${index})">Genera Start List</button>
-                </div>`;
-            } else {
-                html += `
-                <div class="card p-3 mb-4 d-print-none">
-                    <h5>Impostazioni Pista (WA TR 20)</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Corsie Attive Impianto:</label>
-                        <input type="text" id="lanes-${index}" class="form-control" value="${middleDist ? '12' : '1,2,3,4,5,6'}" placeholder="${middleDist ? 'Max atleti per batteria' : 'Es. 1,2,3,4,5,6'}">
-                        <div class="form-text">${middleDist ? 'Inserisci il numero massimo di atleti per batteria (es. 12 per gli 800m).' : 'Se la corsia 1 non è utilizzabile, inserisci "2,3,4,5,6". Il sistema calcolerà automaticamente le batterie necessarie e distribuirà gli atleti al centro della pista.'}</div>
-                    </div>
-                    <button class="btn btn-primary" onclick="generateTrack(${index}, ${middleDist})">
-                    <div class="mb-3">
-                        <label class="form-label">Stile Contagiri (Solo Mezzofondo/Fondo):</label>
-                        <select id="lap-style-${index}" class="form-select">
-                            <option value="normal">Normale (Griglia Vuota per Posizione)</option>
-                            <option value="wa">World Athletics (Precompilato per Pettorale/Nome)</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary mt-2" onclick="generateTrack(${index}, ${middleDist})">Genera Serie (Zig-Zag)</button>
-                </div>`;
-            }
-            
-            html += `<div id="results-${index}"></div>`;
-            document.getElementById('main-content').innerHTML = html;
-            
-            const savedHtml = localStorage.getItem('race_' + currentMeeting.id + '_' + index);
-            if (savedHtml) {
-                document.getElementById('results-' + index).innerHTML = savedHtml;
-            } else {
-                if (field) generateField(index);
-                else generateTrack(index, middleDist);
-            }
-        }
-\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    </script>\n</body>\n</html>
