@@ -15,11 +15,22 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
 4. **Seeding Automatico Concorsi (Regola TR 25)**
    - Algoritmo per **Random Draw** (sorteggio casuale consigliato per le qualificazioni).
    - Algoritmo a **Ordine Inverso** (i migliori SB saltano/lanciano per ultimi, ideale per le Finali).
+5. **Intervento Manuale e Persistenza**
+    - Possibilità di spostare manualmente un atleta da una batteria all'altra tramite un pratico menu a tendina.
+    - Tutte le serie generate e modificate vengono **salvate in cache (LocalStorage)** per non perdere i dati navigando tra le pagine.
+6. **Materiale per Giudici e Segreteria (Stampe)**
+    - Fogli Gara formattati per i salti in estensione e lanci (3+3 prove).
+    - Fogli Gara per salti in elevazione (Alto/Asta) con griglia progressioni.
+    - **Fogli Contagiri Automatici** generati automaticamente per le gare da 800m a 10000m.
+    - Stampe pulite (i menu scompaiono automaticamente su carta).
+7. **Controllo Scarpe (Regola TR 5)**
+    - Strumento rapido integrato per consultare il database ufficiale *WA Shoe CertCheck*.
+    - Riepilogo sempre aggiornato degli spessori massimi ammessi in pista e pedana.
 
 ## 🚀 Come Utilizzare il Progetto
 
 1. Sul tuo Desktop o nella cartella del progetto, avvia il file **`Avvia Scraping FIDAL.bat`**.
-2. Apparirà una finestra di dialogo grafica. Incolla l'URL della pagina `IndexPerGara.html` del meeting FIDAL che vuoi gestire. Se lasci vuoto, aggiornerà l'ultimo meeting in memoria.
+2. Apparirà una finestra di dialogo. Incolla l'URL del meeting (va bene sia il link alla pagina degli iscritti `IndexPerGara.html`, sia il link generico del calendario). Il sistema normalizzerà l'URL **automaticamente**.
 3. Lo script aprirà Microsoft Edge in background per scaricare i dati aggiornati in pochi secondi.
 4. Al termine, si aprirà istantaneamente la **TD Dashboard** nel tuo browser.
 
@@ -42,5 +53,9 @@ Possibilità di gestire l'ordine di partenza (pedana) con un semplice clic.
 - Node.js installato
 - Browser Chromium/Microsoft Edge 
 
-## ⚖️ Note Legali e Disclaimer
-Questo software è un progetto non ufficiale, sviluppato esclusivamente come strumento di ausilio tecnico-decisionale. I dati prelevati pubblicamente dalla FIDAL restano proprietà intellettuale della Federazione (L. 633/1941) e non devono essere usati per scopi commerciali di terze parti o ripubblicazione non autorizzata.
+## ⚖️ Licenza e Disclaimer
+Questo progetto è distribuito con licenza **[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/)**.
+
+Puoi condividere e modificare il materiale, a patto di citare l'autore, non utilizzarlo per scopi commerciali e distribuire le modifiche con la stessa licenza.
+
+*Questo software è un progetto non ufficiale, sviluppato esclusivamente come strumento di ausilio tecnico-decisionale. I dati prelevati pubblicamente dalla FIDAL restano proprietà intellettuale della Federazione (L. 633/1941) e non devono essere usati per scopi commerciali di terze parti o ripubblicazione non autorizzata.*
