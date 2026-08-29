@@ -140,6 +140,28 @@
             return 15;
         }
 
+        function estimateDuration(nomeGara, iscrittiCount, isMiddle, heatsCount) {
+            const lower = nomeGara.toLowerCase();
+            if (isFieldEvent(nomeGara)) {
+                if (lower.includes('asta')) return iscrittiCount * 3 + 15;
+                if (lower.includes('alto')) return iscrittiCount * 2 + 10;
+                return Math.ceil(iscrittiCount * 1.5) + 15;
+            }
+            
+            let assumedHeats = heatsCount;
+            if (!assumedHeats) {
+                assumedHeats = Math.ceil(iscrittiCount / (isMiddle ? 12 : 6));
+            }
+            
+            if (lower.includes('10000') || lower.includes('marcia 10')) return assumedHeats * 40;
+            if (lower.includes('5000') || lower.includes('marcia 5')) return assumedHeats * 22;
+            if (lower.includes('3000') || lower.includes('siepi')) return assumedHeats * 15;
+            if (lower.includes('1500') || lower.includes('miglio')) return assumedHeats * 8;
+            if (lower.includes('800') || lower.includes('1000')) return assumedHeats * 6;
+            if (lower.includes('400')) return assumedHeats * 5;
+            return assumedHeats * 4; // 100, 200, ostacoli, staffette
+        }
+
         function initSidebar() {
             const list = document.getElementById('race-list');
             const groups = { 'Corse': [], 'Salti': [], 'Lanci': [] };
@@ -188,14 +210,18 @@
             
             let total = 0;
             let anomaliesCount = 0;
+            let totalDurationMins = 0;
             let html = `<h2>Panoramica Generale Meeting</h2><hr>`;
             
             let table = `<table class="table table-striped mt-4">
-                <thead class="table-dark"><tr><th>Gara</th><th>Iscritti</th><th>Tipo</th><th>Anomalie (No SB)</th></tr></thead><tbody>`;
+                <thead class="table-dark"><tr><th>Gara</th><th>Iscritti</th><th>Tipo</th><th>Stima Durata</th><th>Anomalie (No SB)</th></tr></thead><tbody>`;
                 
             data.forEach(r => {
                 total += r.numero_iscritti;
                 const field = isFieldEvent(r.nome_gara);
+                const isMiddle = isMiddleDistance(r.nome_gara);
+                const duration = estimateDuration(r.nome_gara, r.numero_iscritti, isMiddle, null);
+                totalDurationMins += duration;
                 const anomalies = r.iscritti.filter(i => !i.accredito.trim()).length;
                 if (anomalies > 0) anomaliesCount++;
                 
@@ -203,15 +229,20 @@
                     <td>${r.nome_gara}</td>
                     <td>${r.numero_iscritti}</td>
                     <td>${field ? 'Concorsi' : 'Corse'}</td>
+                    <td>${Math.round(duration)} min</td>
                     <td class="${anomalies > 0 ? 'anomaly' : ''}">${anomalies}</td>
                 </tr>`;
             });
             table += `</tbody></table>`;
             
+            const hours = Math.floor(totalDurationMins / 60);
+            const mins = Math.round(totalDurationMins % 60);
+            
             html += `<div class="row mb-4">
-                <div class="col-md-4"><div class="card bg-primary text-white"><div class="card-body"><h4>Totale Gare</h4><h2>${data.length}</h2></div></div></div>
-                <div class="col-md-4"><div class="card bg-success text-white"><div class="card-body"><h4>Totale Atleti</h4><h2>${total}</h2></div></div></div>
-                <div class="col-md-4"><div class="card ${anomaliesCount>0?'bg-danger':'bg-info'} text-white"><div class="card-body"><h4>Gare con Anomalie</h4><h2>${anomaliesCount}</h2></div></div></div>
+                <div class="col-md-3"><div class="card bg-primary text-white"><div class="card-body"><h4>Totale Gare</h4><h2>${data.length}</h2></div></div></div>
+                <div class="col-md-3"><div class="card bg-success text-white"><div class="card-body"><h4>Totale Atleti</h4><h2>${total}</h2></div></div></div>
+                <div class="col-md-3"><div class="card bg-info text-white"><div class="card-body"><h4>Stima Durata Tot.</h4><h2>${hours}h ${mins}m</h2></div></div></div>
+                <div class="col-md-3"><div class="card ${anomaliesCount>0?'bg-danger':'bg-secondary'} text-white"><div class="card-body"><h4>Gare con Anomalie</h4><h2>${anomaliesCount}</h2></div></div></div>
             </div>`;
             
             if (anomaliesCount > 0) {
@@ -297,7 +328,12 @@
             const field = isFieldEvent(race.nome_gara);
             const middleDist = isMiddleDistance(race.nome_gara);
             
-            let html = `<h2>${race.nome_gara}</h2><hr>`;
+            const estTime = estimateDuration(race.nome_gara, race.numero_iscritti, middleDist, null);
+            
+            let html = `<div class="d-flex justify-content-between align-items-center">
+                <h2>${race.nome_gara}</h2>
+                <div id="est-time-${index}" class="badge bg-info fs-6">⏱ Stima: ${Math.round(estTime)} min</div>
+            </div><hr>`;
             
             if (race.numero_iscritti === 0) {
                 html += `<div class="alert alert-info">Nessun iscritto a questa gara.</div>`;
@@ -470,6 +506,12 @@
             
             const raceData = { heats, isMiddle, maxLanes, activeLanes };
             localStorage.setItem('race_data_' + index, JSON.stringify(raceData));
+            
+            const badge = document.getElementById(`est-time-${index}`);
+            if (badge) {
+                const updatedTime = estimateDuration(race.nome_gara, total, isMiddle, heatsCount);
+                badge.textContent = `⏱ Stima: ${Math.round(updatedTime)} min`;
+            }
             
             renderTrackHeats(index);
         }
