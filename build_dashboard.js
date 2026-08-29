@@ -574,9 +574,13 @@ const html = `
                 html += \`<div style="page-break-before: always;" class="mt-5"></div>
                 <div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
                     <h4 class="mt-4 text-primary">Foglio Contagiri (\${race.nome_gara})</h4>
-                    <button class="btn btn-outline-primary btn-sm mt-4" onclick="window.print()">🖨 Stampa Contagiri</button>
+                    <div>
+                        <a href="https://matteomircoli.it/contagiristatico/garav2.html" target="_blank" class="btn btn-outline-success btn-sm mt-4 me-2">⏱ Contagiri Elettronico</a>
+                        <button class="btn btn-outline-primary btn-sm mt-4" onclick="window.print()">🖨 Stampa Foglio Cartaceo</button>
+                    </div>
                 </div>
                 <h4 class="mt-4 d-none d-print-block">Foglio Contagiri - \${race.nome_gara}</h4>
+                <div class="d-print-none alert alert-info small"><strong>Suggerimento:</strong> Questo foglio è stato appositamente disegnato senza i nomi degli atleti. Il giudice segnerà a mano il pettorale dell'atleta che transita in corrispondenza del giro.</div>
                 \`;
                 
                 heats.forEach((h, i) => {
@@ -584,19 +588,21 @@ const html = `
                     html += \`<div class="mt-4" style="page-break-inside: avoid;">
                         <h5>Contagiri - Serie \${i+1}</h5>
                         <table class="table table-bordered table-sm text-center" style="font-size: 0.8rem;">
-                        <thead class="table-light"><tr><th width="5%">Pett</th><th width="15%">Atleta</th>\`;
-                    for(let lap=numLaps; lap>=1; lap--) {
+                        <thead class="table-light"><tr><th width="5%">Pos</th><th width="10%">Pettorale</th>\`;
+                    for(let lap=numLaps; lap>=2; lap--) {
                         html += \`<th>-\${lap}</th>\`;
                     }
-                    html += \`</tr></thead><tbody>\`;
+                    html += \`<th>ARRIVO</th></tr></thead><tbody>\`;
                     
-                    h.forEach(a => {
-                        html += \`<tr><td><strong>\${a.pettorale}</strong></td><td class="text-start text-truncate" style="max-width: 150px;">\${a.nominativo}</td>\`;
+                    // Create empty rows equal to the number of athletes + 3 extra lines for safety
+                    const numRows = h.length + 3;
+                    for (let row = 1; row <= numRows; row++) {
+                        html += \`<tr><td><strong>\${row}°</strong></td><td></td>\`;
                         for(let lap=1; lap<=numLaps; lap++) {
                             html += \`<td></td>\`;
                         }
                         html += \`</tr>\`;
-                    });
+                    }
                     
                     html += \`</tbody></table></div>\`;
                 });
