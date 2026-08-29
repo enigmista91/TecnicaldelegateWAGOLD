@@ -11,17 +11,20 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
 3. **Seeding Automatico Corse (Regola TR 20)**
    - Composizione del numero esatto di batterie (Heats) basato sulle corsie a disposizione.
    - Distribuzione degli atleti a "Zig-Zag" in base al Season Best (SB).
-   - Assegnazione automatica delle **corsie preferenziali** (es. 3, 4, 5, 6 su piste a 6 corsie) alle teste di serie della relativa batteria.
-4. **Seeding Automatico Concorsi (Regola TR 25)**
+   - Assegnazione automatica delle **corsie preferenziali** (es. 3, 4, 5, 6 su piste a 6 corsie).
+   - **Gestione corsie inagibili**: possibilità di specificare un sottoinsieme di corsie attive (es. `2,3,4,5,6` se la 1 è rotta) e ricalcolo automatico dell'algoritmo di assegnazione per privilegiare il centro.
+4. **Seeding Automatico e Progressioni Concorsi (Regola TR 25 & TR 26.1)**
    - Algoritmo per **Random Draw** (sorteggio casuale consigliato per le qualificazioni).
    - Algoritmo a **Ordine Inverso** (i migliori SB saltano/lanciano per ultimi, ideale per le Finali).
+   - **Validazione Progressioni (TR 26.1)** per Alto e Asta in tempo reale (incrementi di min 2cm/5cm senza mai aumentare).
 5. **Intervento Manuale e Persistenza**
     - Possibilità di spostare manualmente un atleta da una batteria all'altra tramite un pratico menu a tendina.
-    - Tutte le serie generate e modificate vengono **salvate in cache (LocalStorage)** per non perdere i dati navigando tra le pagine.
+    - Tutte le serie generate e modificate vengono **salvate in cache (LocalStorage)** per non perdere i dati.
 6. **Materiale per Giudici e Segreteria (Stampe)**
     - Fogli Gara formattati per i salti in estensione e lanci (3+3 prove).
-    - Fogli Gara per salti in elevazione (Alto/Asta) con griglia progressioni.
-    - **Fogli Contagiri Automatici** generati automaticamente per le gare da 800m a 10000m.
+    - Fogli Gara dinamici per Alto/Asta con griglia basata sulle progressioni inserite.
+    - **Fogli Contagiri Cartacei** (800m-10000m) con griglia vuota per permettere ai giudici di segnare a penna i pettorali a ogni giro fino all'arrivo.
+    - Integrazione diretta (pulsante) con la **Web App Contagiri Elettronico**.
     - Stampe pulite (i menu scompaiono automaticamente su carta).
 7. **Controllo Scarpe (Regola TR 5)**
     - Strumento rapido integrato per consultare il database ufficiale *WA Shoe CertCheck*.
