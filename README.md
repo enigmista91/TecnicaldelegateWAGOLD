@@ -46,19 +46,25 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
 3. Lo script aprirà Microsoft Edge in background per scaricare i dati aggiornati in pochi secondi.
 4. Al termine, si aprirà istantaneamente la **TD Dashboard** nel tuo browser.
 
-## 📸 Anteprima e Interfaccia (Dati Anonimizzati)
+### Nuove Funzionalità (Architettura 2.0 SPA)
+- **Database Locale Offline (IndexedDB)**: Mantieni in memoria lo storico di tutti i meeting scaricati senza dipendere da internet, passando da uno all'altro istantaneamente.
+- **Call Room Live**: Inserisci l'orario effettivo di gara e l'app calcolerà per te automaticamente l'apertura della prima camera d'appello, della seconda, e l'ingresso in pista. Un cruscotto ti segnalerà con dei colori lo stato live di ogni gara.
+- **Sincronizzazione SIGMA/WISE**: Cliccando il pulsante apposito, la Dashboard interroga in background la piattaforma federale: se una gara ha già i risultati pubblicati, verrà segnata come completata e depennata dalla Call Room in tempo reale.
+- **Appunti TD & Radio**: Una sezione speciale persistente dove salvare appunti, decisioni del delegato, organigramma giurie e piano comunicazioni radio.
 
-### 1. Panoramica del Meeting
-Una vista immediata sui numeri del meeting per capire subito quante gare hanno atleti sprovvisti di Season Best (No Time / No Mark).
+## Screenshots
+
+### 1. Panoramica Meeting
 ![Overview](assets/overview.png)
 
-### 2. Gestione Corse e Velocità
-Selezionando una gara su pista dal menu laterale, è possibile indicare le corsie dell'impianto per generare le Starting List perfette per la Call Room.
-![Track Events](assets/track.png)
+### 2. Call Room Live & Sincronizzazione
+![Call Room](assets/callroom.png)
 
-### 3. Gestione Concorsi (Salti e Lanci)
-Possibilità di gestire l'ordine di partenza (pedana) con un semplice clic.
-![Field Events](assets/field.png)
+### 3. Gestione Pista (WA TR 20)
+![Track Generation](assets/track.png)
+
+### 4. Gestione Concorsi (WA TR 25 & 26)
+![Field Generation](assets/field.png)
 
 ## 🛠 Requisiti Tecnici
 - Sistema Operativo Windows
