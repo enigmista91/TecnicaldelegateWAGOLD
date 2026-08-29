@@ -129,8 +129,14 @@
             
             // If injected, select it
             if (window.__INJECTED_MEETING__) {
-                const match = window.__INJECTED_MEETING__.info.url.match(/(REG\d+|COD\d+)/i);
-                if (match) sel.value = match[0].toUpperCase();
+                const url = window.__INJECTED_MEETING__.info.url || "";
+                const match = url.match(/(REG\d+|COD\d+)/i);
+                if (match) {
+                    sel.value = match[0].toUpperCase();
+                } else {
+                    // Fallback to "default" if no code is found
+                    sel.value = "default";
+                }
             }
             
             await switchMeeting();
