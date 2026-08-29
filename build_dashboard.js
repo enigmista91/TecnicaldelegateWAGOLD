@@ -361,6 +361,41 @@ const html = `
                 }
             });
             
+            const raceData = { heats, isMiddle, maxLanes };
+            localStorage.setItem('race_data_' + index, JSON.stringify(raceData));
+            
+            renderTrackHeats(index);
+        }
+
+        function moveAthlete(index, fromHeat, pettorale, toHeatSelect) {
+            const toHeat = parseInt(toHeatSelect.value);
+            if (fromHeat === toHeat) return;
+            
+            let raceData = JSON.parse(localStorage.getItem('race_data_' + index));
+            let heats = raceData.heats;
+            
+            // Find athlete
+            let athleteIndex = heats[fromHeat].findIndex(a => a.pettorale === pettorale);
+            if (athleteIndex > -1) {
+                const athlete = heats[fromHeat].splice(athleteIndex, 1)[0];
+                heats[toHeat].push(athlete);
+                
+                localStorage.setItem('race_data_' + index, JSON.stringify(raceData));
+                renderTrackHeats(index);
+            }
+        }
+
+        function renderTrackHeats(index) {
+            const race = data[index];
+            const raceDataStr = localStorage.getItem('race_data_' + index);
+            if (!raceDataStr) return;
+            
+            const raceData = JSON.parse(raceDataStr);
+            const heats = raceData.heats;
+            const isMiddle = raceData.isMiddle;
+            const maxLanes = raceData.maxLanes;
+            const heatsCount = heats.length;
+            
             let html = \`<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
                 <h4>Composizione Serie (\${heatsCount} Serie Generate)</h4>
                 <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨 Stampa</button>
@@ -372,8 +407,12 @@ const html = `
             const pref = maxLanes === 6 ? pref6 : (maxLanes === 8 ? pref8 : Array.from({length: maxLanes}, (_,i)=>i+1));
             
             heats.forEach((h, i) => {
-                html += \`<div class="mt-4" style="page-break-inside: avoid;"><h5>Serie \${i+1}</h5><table class="table table-bordered table-sm">
-                    <thead class="table-light"><tr><th>\${isMiddle ? 'Pos' : 'Corsia'}</th><th>Pett</th><th>Atleta</th><th>Società</th><th>SB</th><th width="15%">Risultato</th><th width="5%">Pos</th></tr></thead><tbody>\`;
+                html += \`<div class="mt-4" style="page-break-inside: avoid;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5>Serie \${i+1}</h5>
+                    </div>
+                    <table class="table table-bordered table-sm">
+                    <thead class="table-light"><tr><th>\${isMiddle ? 'Pos' : 'Corsia'}</th><th>Pett</th><th>Atleta</th><th>Società</th><th>SB</th><th width="15%">Risultato</th><th width="5%">Pos</th><th class="d-print-none" width="10%">Sposta</th></tr></thead><tbody>\`;
                 
                 if (!isMiddle) {
                     // Assign lanes
@@ -389,7 +428,15 @@ const html = `
                 
                 h.forEach(a => {
                     const athleteName = a.fidal_link ? \`<a href="\${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">\${a.nominativo}</a>\` : \`<span class="fw-bold">\${a.nominativo}</span>\`;
-                    html += \`<tr><td><strong>\${a.lane}</strong></td><td>\${a.pettorale}</td><td>\${athleteName}</td><td><small>\${a.societa.substring(0,20)}</small></td><td>\${a.accredito}</td><td></td><td></td></tr>\`;
+                    
+                    // Heat selector
+                    let selectHtml = \`<select class="form-select form-select-sm" onchange="moveAthlete(\${index}, \${i}, '\${a.pettorale}', this)">\`;
+                    for(let x=0; x<heatsCount; x++) {
+                        selectHtml += \`<option value="\${x}" \${x===i ? 'selected' : ''}>S \${x+1}</option>\`;
+                    }
+                    selectHtml += \`</select>\`;
+                    
+                    html += \`<tr><td><strong>\${a.lane}</strong></td><td>\${a.pettorale}</td><td>\${athleteName}</td><td><small>\${a.societa.substring(0,20)}</small></td><td>\${a.accredito}</td><td></td><td></td><td class="d-print-none">\${selectHtml}</td></tr>\`;
                 });
                 
                 html += \`</tbody></table></div>\`;
@@ -406,6 +453,7 @@ const html = `
                 \`;
                 
                 heats.forEach((h, i) => {
+                    if (h.length === 0) return;
                     html += \`<div class="mt-4" style="page-break-inside: avoid;">
                         <h5>Contagiri - Serie \${i+1}</h5>
                         <table class="table table-bordered table-sm text-center" style="font-size: 0.8rem;">
