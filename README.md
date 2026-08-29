@@ -17,10 +17,14 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
    - Algoritmo per **Random Draw** (sorteggio casuale consigliato per le qualificazioni).
    - Algoritmo a **Ordine Inverso** (i migliori SB saltano/lanciano per ultimi, ideale per le Finali).
    - **Validazione Progressioni (TR 26.1)** per Alto e Asta in tempo reale (incrementi di min 2cm/5cm senza mai aumentare).
-5. **Intervento Manuale e Persistenza**
+5. **Calcolo del Timetable (Stima Durate)**
+   - Stima automatica del **Timetable** per ogni gara in base agli iscritti, alle batterie necessarie e alla specialità (Velocità, Mezzofondo, Lanci, ecc.).
+   - Ricalcolo dinamico della durata in base alle corsie attive o a modifiche manuali.
+   - Tabella riassuntiva nella Home Page con il calcolo del tempo totale di svolgimento del meeting.
+6. **Intervento Manuale e Persistenza**
     - Possibilità di spostare manualmente un atleta da una batteria all'altra tramite un pratico menu a tendina.
     - Tutte le serie generate e modificate vengono **salvate in cache (LocalStorage)** per non perdere i dati.
-6. **Materiale per Giudici e Segreteria (Stampe)**
+7. **Materiale per Giudici e Segreteria (Stampe)**
     - Fogli Gara formattati per i salti in estensione e lanci (3+3 prove).
     - Fogli Gara dinamici per Alto/Asta con griglia basata sulle progressioni inserite.
     - **Fogli Contagiri Cartacei** (800m-10000m) con griglia vuota per permettere ai giudici di segnare a penna i pettorali a ogni giro fino all'arrivo.

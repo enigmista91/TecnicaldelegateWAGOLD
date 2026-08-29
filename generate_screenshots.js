@@ -45,7 +45,7 @@ const fs = require('fs');
     const buttons = await page.$$('.nav-link');
     for (let btn of buttons) {
         const text = await btn.innerText();
-        if (text.toLowerCase().includes('metri') || text.toLowerCase().includes('corsa')) {
+        if (text.toLowerCase().includes('800') || text.toLowerCase().includes('1500')) {
             await btn.click();
             await page.waitForTimeout(1000);
             const genBtn = await page.$('button:has-text("Genera")');
@@ -60,9 +60,18 @@ const fs = require('fs');
     console.log('Taking field screenshot...');
     for (let btn of buttons) {
         const text = await btn.innerText();
-        if (text.toLowerCase().includes('salto') || text.toLowerCase().includes('lungo') || text.toLowerCase().includes('peso') || text.toLowerCase().includes('disco')) {
+        if (text.toLowerCase().includes('alto') || text.toLowerCase().includes('asta')) {
             await btn.click();
             await page.waitForTimeout(1000);
+            
+            // Fill progression
+            const progInput = await page.$('input[placeholder*="Es. 1.80"]');
+            if (progInput) {
+                await progInput.fill('1.60 1.65 1.70 1.73 1.75 1.77');
+                await progInput.press('Enter');
+                await page.waitForTimeout(500); // Wait for validation feedback
+            }
+            
             const genBtn = await page.$('button:has-text("Genera")');
             if(genBtn) await genBtn.click();
             await page.waitForTimeout(500);
