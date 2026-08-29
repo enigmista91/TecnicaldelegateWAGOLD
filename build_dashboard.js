@@ -63,7 +63,24 @@ const html = `
         
         function isMiddleDistance(name) {
             const lower = name.toLowerCase();
-            return ['600', '800', '1000', '1200', '1500', '2000', '3000', '5000', 'siepi', 'marcia'].some(k => lower.includes(k));
+            return ['600', '800', '1000', '1200', '1500', '2000', '3000', '5000', '10000', 'siepi', 'marcia'].some(k => lower.includes(k));
+        }
+
+        function getLaps(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('600')) return 2;
+            if (lower.includes('800')) return 2;
+            if (lower.includes('1000')) return 3;
+            if (lower.includes('1200')) return 3;
+            if (lower.includes('1500')) return 4;
+            if (lower.includes('2000')) return 5;
+            if (lower.includes('3000')) return 8;
+            if (lower.includes('siepi')) return 8;
+            if (lower.includes('5000')) return 13;
+            if (lower.includes('10000')) return 25;
+            if (lower.includes('marcia 5')) return 13;
+            if (lower.includes('marcia 10')) return 25;
+            return 15;
         }
 
         function initSidebar() {
@@ -377,6 +394,38 @@ const html = `
                 
                 html += \`</tbody></table></div>\`;
             });
+            
+            if (isMiddle) {
+                const numLaps = getLaps(race.nome_gara);
+                html += \`<div style="page-break-before: always;" class="mt-5"></div>
+                <div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
+                    <h4 class="mt-4 text-primary">Foglio Contagiri (\${race.nome_gara})</h4>
+                    <button class="btn btn-outline-primary btn-sm mt-4" onclick="window.print()">🖨 Stampa Contagiri</button>
+                </div>
+                <h4 class="mt-4 d-none d-print-block">Foglio Contagiri - \${race.nome_gara}</h4>
+                \`;
+                
+                heats.forEach((h, i) => {
+                    html += \`<div class="mt-4" style="page-break-inside: avoid;">
+                        <h5>Contagiri - Serie \${i+1}</h5>
+                        <table class="table table-bordered table-sm text-center" style="font-size: 0.8rem;">
+                        <thead class="table-light"><tr><th width="5%">Pett</th><th width="15%">Atleta</th>\`;
+                    for(let lap=numLaps; lap>=1; lap--) {
+                        html += \`<th>-\${lap}</th>\`;
+                    }
+                    html += \`</tr></thead><tbody>\`;
+                    
+                    h.forEach(a => {
+                        html += \`<tr><td><strong>\${a.pettorale}</strong></td><td class="text-start text-truncate" style="max-width: 150px;">\${a.nominativo}</td>\`;
+                        for(let lap=1; lap<=numLaps; lap++) {
+                            html += \`<td></td>\`;
+                        }
+                        html += \`</tr>\`;
+                    });
+                    
+                    html += \`</tbody></table></div>\`;
+                });
+            }
             
             document.getElementById(\`results-\${index}\`).innerHTML = html;
             localStorage.setItem('race_' + index, html);
