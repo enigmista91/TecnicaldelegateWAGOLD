@@ -58,6 +58,71 @@
             return ['600', '800', '1000', '1200', '1500', '2000', '3000', '5000', '10000', 'siepi', 'marcia'].some(k => lower.includes(k));
         }
 
+        function validateProgression(inputElement, raceName) {
+            const feedback = inputElement.nextElementSibling;
+            const str = inputElement.value.replace(/,/g, ' ').trim();
+            if (!str) {
+                feedback.innerHTML = "Inserisci le misure separate da spazio o virgola. Saranno stampate sul foglio gara.";
+                feedback.className = "form-text text-muted";
+                inputElement.classList.remove('is-invalid', 'is-valid');
+                return;
+            }
+            
+            const measures = str.split(/\s+/).map(x => parseFloat(x));
+            if (measures.some(isNaN)) {
+                feedback.innerHTML = "Formato non valido. Inserisci solo numeri (es. 1.80 1.85).";
+                feedback.className = "form-text text-danger";
+                inputElement.classList.add('is-invalid');
+                inputElement.classList.remove('is-valid');
+                return;
+            }
+            
+            // Check strict monotonicity
+            for(let i = 1; i < measures.length; i++) {
+                if (measures[i] <= measures[i-1]) {
+                    feedback.innerHTML = "Le misure devono essere crescenti!";
+                    feedback.className = "form-text text-danger";
+                    inputElement.classList.add('is-invalid');
+                    inputElement.classList.remove('is-valid');
+                    return;
+                }
+            }
+            
+            const isPoleVault = raceName.toLowerCase().includes('asta');
+            const minIncrement = isPoleVault ? 5 : 2; // in cm
+            
+            let valid = true;
+            let errorMsg = "";
+            let lastInc = 999;
+            
+            for (let i = 1; i < measures.length; i++) {
+                const diffCm = Math.round((measures[i] - measures[i-1]) * 100);
+                if (diffCm < minIncrement) {
+                    valid = false;
+                    errorMsg = `Errore TR 26.1: Incremento di ${diffCm}cm tra ${measures[i-1]} e ${measures[i]}. Minimo consentito: ${minIncrement}cm.`;
+                    break;
+                }
+                if (diffCm > lastInc) {
+                    valid = false;
+                    errorMsg = `Errore TR 26.1: L'incremento non può aumentare. Precedente: ${lastInc}cm, Nuovo: ${diffCm}cm.`;
+                    break;
+                }
+                lastInc = diffCm;
+            }
+            
+            if (!valid) {
+                feedback.innerHTML = errorMsg;
+                feedback.className = "form-text text-danger";
+                inputElement.classList.add('is-invalid');
+                inputElement.classList.remove('is-valid');
+            } else {
+                feedback.innerHTML = "Progressione a norma WA TR 26.1 ✅";
+                feedback.className = "form-text text-success";
+                inputElement.classList.remove('is-invalid');
+                inputElement.classList.add('is-valid');
+            }
+        }
+
         function getLaps(name) {
             const lower = name.toLowerCase();
             if (lower.includes('600')) return 2;
@@ -241,17 +306,29 @@
             }
 
             if (field) {
+                const lower = race.nome_gara.toLowerCase();
+                const vertical = lower.includes('alto') || lower.includes('asta');
                 html += `
                 <div class="card p-3 mb-4 d-print-none">
-                    <h5>Impostazioni Pedana (WA TR 25)</h5>
+                    <h5>Impostazioni Pedana (WA TR 25 ${vertical ? '& TR 26' : ''})</h5>
                     <div class="mb-3">
                         <label class="form-label">Criterio Ordine di Partenza:</label>
                         <select id="field-order-${index}" class="form-select">
                             <option value="inverse">Ordine Inverso di Accredito (Consigliato Finali)</option>
                             <option value="random">Ordine Casuale (Consigliato Qualificazioni)</option>
                         </select>
-                    </div>
-                    <button class="btn btn-primary" onclick="generateField(${index})">Genera Start List</button>
+                    </div>`;
+                    
+                if (vertical) {
+                    html += `
+                    <div class="mb-3">
+                        <label class="form-label">Progressione Misure (TR 26.1):</label>
+                        <input type="text" id="progression-${index}" class="form-control" placeholder="Es. 1.80 1.85 1.90 1.93" onkeyup="validateProgression(this, '${race.nome_gara.replace(/'/g, "\\'")}')">
+                        <div id="progression-feedback-${index}" class="form-text">Inserisci le misure separate da spazio o virgola. Saranno stampate sul foglio gara.</div>
+                    </div>`;
+                }
+                    
+                html += `<button class="btn btn-primary" onclick="generateField(${index})">Genera Start List</button>
                 </div>
                 <div id="results-${index}"></div>
                 `;
@@ -301,10 +378,20 @@
             <table class="table table-bordered table-sm" style="font-size: 0.85rem;">
                 <thead class="table-light">`;
                 
+            let progCols = 10;
             if (isVertical) {
-                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Società</th><th width="5%">SB</th>
-                <th width="5%"></th><th width="5%"></th><th width="5%"></th><th width="5%"></th><th width="5%"></th><th width="5%"></th><th width="5%"></th><th width="5%"></th>
-                <th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
+                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Società</th><th width="5%">SB</th>`;
+                const progInput = document.getElementById(`progression-${index}`);
+                let measuresArray = [];
+                if (progInput && progInput.value.trim() !== '') {
+                    measuresArray = progInput.value.replace(/,/g, ' ').split(/\s+/).filter(x=>x);
+                    progCols = Math.max(10, measuresArray.length + 2);
+                }
+                for(let i=0; i<progCols; i++) {
+                    const m = measuresArray[i] || '';
+                    html += `<th>${m}</th>`;
+                }
+                html += `<th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
             } else {
                 html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Società</th><th width="5%">SB</th>
                 <th width="7%">1°</th><th width="7%">2°</th><th width="7%">3°</th><th width="7%">4°</th><th width="7%">5°</th><th width="7%">6°</th>
@@ -313,13 +400,30 @@
             
             iscritti.forEach((a, i) => {
                 const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
-                html += `<tr><td>${i+1}</td><td>${a.pettorale}</td><td>${athleteName}</td><td><small>${a.societa.substring(0,20)}</small></td><td>${a.accredito}</td>`;
+                html += `<tr>
+                    <td><strong>${i+1}</strong></td>
+                    <td>${a.pettorale}</td>
+                    <td>${athleteName}</td>
+                    <td><small>${a.societa.substring(0,20)}</small></td>
+                    <td>${a.accredito}</td>`;
                 
                 if (isVertical) {
-                    html += `<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+                    for(let attempt=0; attempt<progCols; attempt++) {
+                        html += `<td></td>`;
+                    }
+                    html += `<td></td><td></td>`;
                 } else {
-                    html += `<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+                    for(let attempt=1; attempt<=3; attempt++) {
+                        html += `<td></td>`;
+                    }
+                    html += `<td class="table-light"></td>`; // Migliore 3 prove
+                    for(let attempt=4; attempt<=6; attempt++) {
+                        html += `<td></td>`;
+                    }
+                    html += `<td></td><td></td>`; // Misura finale e Pos
                 }
+                
+                html += `</tr>`;
             });
             html += `</tbody></table>`;
             
