@@ -27,7 +27,9 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
 7. **Materiale per Giudici e Segreteria (Stampe)**
     - Fogli Gara formattati per i salti in estensione e lanci (3+3 prove).
     - Fogli Gara dinamici per Alto/Asta con griglia basata sulle progressioni inserite.
-    - **Fogli Contagiri Cartacei** (800m-10000m) con griglia vuota per permettere ai giudici di segnare a penna i pettorali a ogni giro fino all'arrivo.
+    - **Fogli Contagiri Cartacei** (800m-10000m) con due stili disponibili:
+      - *Stile Normale (FIDAL)*: griglia vuota per permettere ai giudici di segnare a penna i pettorali a ogni giro in base alla posizione.
+      - *Stile World Athletics*: griglia pre-compilata con pettorale e nome, il giudice "spunta" il riquadro al passaggio dell'atleta in quel giro.
     - Integrazione diretta (pulsante) con la **Web App Contagiri Elettronico**.
     - Stampe pulite (i menu scompaiono automaticamente su carta).
 7. **Controllo Scarpe (Regola TR 5)**
