@@ -79,6 +79,18 @@ const fs = require('fs');
             break;
         }
     }
+
+    // Call Room Screen
+    console.log('Taking Call Room screenshot...');
+    for (let btn of buttons) {
+        const text = await btn.innerText();
+        if (text.toLowerCase().includes('call room')) {
+            await btn.click();
+            await page.waitForTimeout(1000);
+            await page.screenshot({ path: 'assets/callroom.png' });
+            break;
+        }
+    }
     
     await browser.close();
     
