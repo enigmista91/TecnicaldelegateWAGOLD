@@ -29,6 +29,11 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
 
 ## 🚀 Come Utilizzare il Progetto
 
+### Primo Avvio (Installazione)
+1. Assicurati di avere [Node.js](https://nodejs.org/it) installato sul tuo computer.
+2. Fai doppio clic sul file **`Install_Requisiti.bat`**. Questo installerà automaticamente le librerie necessarie (Playwright) per far funzionare il programma. Questa operazione va fatta solo la prima volta.
+
+### Utilizzo Quotidiano
 1. Sul tuo Desktop o nella cartella del progetto, avvia il file **`Avvia Scraping FIDAL.bat`**.
 2. Apparirà una finestra di dialogo. Incolla l'URL del meeting (va bene sia il link alla pagina degli iscritti `IndexPerGara.html`, sia il link generico del calendario). Il sistema normalizzerà l'URL **automaticamente**.
 3. Lo script aprirà Microsoft Edge in background per scaricare i dati aggiornati in pochi secondi.

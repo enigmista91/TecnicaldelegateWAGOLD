@@ -1,4 +1,14 @@
 {
+  "name": "wa-gold-td-dashboard",
+  "version": "1.0.0",
+  "description": "Dashboard per Delegati Tecnici di atletica leggera (WA Gold) per gestione TR 20, TR 25 e scraping FIDAL.",
+  "main": "scrape_main.js",
+  "scripts": {
+    "start": "node scrape_main.js",
+    "build": "node build_dashboard.js"
+  },
+  "author": "enigmista91",
+  "license": "CC-BY-NC-SA-4.0",
   "dependencies": {
     "playwright": "^1.62.1"
   }
