@@ -257,22 +257,30 @@
             clearActiveNav();
             document.querySelectorAll('#nav-general .nav-link')[2].classList.add('active');
             
-            const noteData = await db.notes.get(currentMeeting.id) || { meetingId: currentMeeting.id, text: '', orgChart: '', radioPlan: '' };
+            const noteData = await db.notes.get(currentMeeting.id) || { meetingId: currentMeeting.id, text: '', orgChart: '', radioPlan: '', contactsOrg: '', contactsMed: '' };
             
             document.getElementById('main-content').innerHTML = `
-                <h2>Appunti TD & Piano Organizzativo</h2><hr>
+                <h2>Appunti, Organigramma & Contatti</h2><hr>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Appunti e Decisioni del Delegato Tecnico</label>
-                        <textarea id="td-notes" class="form-control" rows="10" placeholder="Scrivi qui gli appunti...">${noteData.text}</textarea>
+                        <textarea id="td-notes" class="form-control" rows="8" placeholder="Scrivi qui gli appunti...">${noteData.text || ''}</textarea>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Organigramma e Giurie</label>
-                        <textarea id="td-org" class="form-control" rows="10" placeholder="Es. Arbitro Pista: Mario Rossi...">${noteData.orgChart}</textarea>
+                        <textarea id="td-org" class="form-control" rows="8" placeholder="Es. Arbitro Pista: Mario Rossi...">${noteData.orgChart || ''}</textarea>
                     </div>
-                    <div class="col-md-12 mb-3">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold text-danger">Contatti Medico di Servizio</label>
+                        <textarea id="td-med" class="form-control" rows="3" placeholder="Nome Medico e Telefono...">${noteData.contactsMed || ''}</textarea>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold text-primary">Contatti Organizzatore</label>
+                        <textarea id="td-org-contacts" class="form-control" rows="3" placeholder="Nome Organizzatore e Telefono...">${noteData.contactsOrg || ''}</textarea>
+                    </div>
+                    <div class="col-md-4 mb-3">
                         <label class="form-label fw-bold">Piano Radio e Comunicazioni</label>
-                        <textarea id="td-radio" class="form-control" rows="5" placeholder="Es. CH 1: Direttore di Gara, CH 2: Call Room...">${noteData.radioPlan}</textarea>
+                        <textarea id="td-radio" class="form-control" rows="3" placeholder="Es. CH 1: Direttore di Gara...">${noteData.radioPlan || ''}</textarea>
                     </div>
                 </div>
                 <button class="btn btn-success" onclick="saveNotes()">💾 Salva Modifiche</button>
@@ -285,7 +293,9 @@
                 meetingId: currentMeeting.id,
                 text: document.getElementById('td-notes').value,
                 orgChart: document.getElementById('td-org').value,
-                radioPlan: document.getElementById('td-radio').value
+                radioPlan: document.getElementById('td-radio').value,
+                contactsOrg: document.getElementById('td-org-contacts').value,
+                contactsMed: document.getElementById('td-med').value
             });
             const fb = document.getElementById('note-save-feedback');
             fb.classList.remove('d-none');
