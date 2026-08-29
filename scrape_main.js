@@ -6,6 +6,17 @@ let INDEX_URL = 'https://www.fidal.it/risultati/2026/REG44788/Iscrizioni/IndexPe
 if (args.length > 0 && args[0].trim() !== '') {
     INDEX_URL = args[0].trim();
 }
+
+// URL Normalization: If user pastes calendar link or general results link
+if (!INDEX_URL.toLowerCase().includes('iscrizioni/indexpergara.html')) {
+    const yearMatch = INDEX_URL.match(/20\d{2}/);
+    const codeMatch = INDEX_URL.match(/(REG\d+|COD\d+)/i);
+    if (yearMatch && codeMatch) {
+        INDEX_URL = `https://www.fidal.it/risultati/${yearMatch[0]}/${codeMatch[0].toUpperCase()}/Iscrizioni/IndexPerGara.html`;
+        console.log("URL normalizzato automaticamente a: " + INDEX_URL);
+    }
+}
+
 const BASE_URL = INDEX_URL.substring(0, INDEX_URL.lastIndexOf('/') + 1);
 
 (async () => {
