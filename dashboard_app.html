@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WA Gold - TD Dashboard 2.0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; }
+        .sidebar { min-height: 100vh; background: #343a40; color: white; padding-top: 20px; }
+        .nav-link { color: #c2c7d0; cursor: pointer; transition: 0.2s; }
+        .nav-link:hover, .nav-link.active { color: white; background: #495057; border-radius: 5px; }
+        .main-content { padding: 30px; background: white; min-height: 100vh; box-shadow: -5px 0 15px rgba(0,0,0,0.05); }
+        .page-break { page-break-before: always; }
+        .anomaly { background-color: #ffeeba !important; font-weight: bold; }
+        @media print {
+            .d-print-none { display: none !important; }
+            .sidebar { display: none !important; }
+            .main-content { padding: 0 !important; box-shadow: none !important; width: 100% !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar d-print-none" id="sidebar">
+                <div class="px-3 mb-4">
+                    <h5 class="text-warning fw-bold">🥇 WA Gold TD</h5>
+                    <select id="meeting-selector" class="form-select form-select-sm mt-3" onchange="switchMeeting()">
+                    </select>
+                </div>
+                
+                <div class="px-2" id="nav-general">
+                    <button class="nav-link w-100 text-start btn btn-sm mb-1 active" onclick="showOverview()">📊 Panoramica Meeting</button>
+                    <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showCallRoom()">⏱ Call Room Live</button>
+                    <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showNotes()">📝 Appunti TD & Radio</button>
+                    <button class="nav-link w-100 text-start btn btn-sm mb-1 text-success fw-bold" onclick="showShoeControl()">👟 Controllo Scarpe</button>
+                </div>
+                
+                <hr class="text-secondary">
+                <div class="px-2" id="race-list"></div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-10 main-content" id="main-content">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // 1. Database Setup
+        const db = new Dexie('WAGoldDatabase');
+        db.version(1).stores({
+            meetings: 'id, name, date, data, resultsUrl',
+            notes: 'meetingId',
+            races: 'id, meetingId, name, scheduledTime, isCompleted'
+        });
+
+        // Global State
+        let currentMeeting = null;
+        let activeRaceIndex = null;
+        let callRoomTimer = null;
+
+        /* __INJECT_MEETING__ */
+
+        // 2. Initialization
+        async function init() {
+            if (window.__INJECTED_MEETING__) {
+                const m = window.__INJECTED_MEETING__;
+                let mId = "default";
+                let rUrl = "";
+                if (m.info && m.info.url) {
+                    const match = m.info.url.match(/(REG\d+|COD\d+)/i);
+                    if (match) mId = match[0].toUpperCase();
+                    rUrl = m.info.url.replace('/Iscrizioni/IndexPerGara.html', '/Risultati/IndexRisultatiPerGara.html');
+                }
+                
+                await db.meetings.put({
+                    id: mId,
+                    name: m.info ? m.info.name : "Meeting Senza Nome",
+                    date: new Date().toISOString(),
+                    data: m.races,
+                    resultsUrl: rUrl
+                });
+                
+                // Also init races
+                for (const race of m.races) {
+                    const raceId = mId + '_' + race.nome_gara;
+                    const existing = await db.races.get(raceId);
+                    if (!existing) {
+                        await db.races.put({
+                            id: raceId,
+                            meetingId: mId,
+                            name: race.nome_gara,
+                            scheduledTime: '',
+                            isCompleted: 0
+                        });
+                    }
+                }
+            }
+            
+            await loadMeetingList();
+        }
+
+        async function loadMeetingList() {
+            const meetings = await db.meetings.toArray();
+            const sel = document.getElementById('meeting-selector');
+            sel.innerHTML = '';
+            
+            if (meetings.length === 0) {
+                sel.innerHTML = '<option>Nessun meeting caricato</option>';
+                document.getElementById('main-content').innerHTML = '<div class="alert alert-info mt-4">Genera un meeting usando lo script di scraping per iniziare.</div>';
+                return;
+            }
+            
+            // Sort by date desc
+            meetings.sort((a,b) => new Date(b.date) - new Date(a.date));
+            
+            meetings.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.name;
+                sel.appendChild(opt);
+            });
+            
+            // If injected, select it
+            if (window.__INJECTED_MEETING__) {
+                const match = window.__INJECTED_MEETING__.info.url.match(/(REG\d+|COD\d+)/i);
+                if (match) sel.value = match[0].toUpperCase();
+            }
+            
+            await switchMeeting();
+        }
+
+        async function switchMeeting() {
+            const sel = document.getElementById('meeting-selector');
+            if (!sel.value) return;
+            
+            currentMeeting = await db.meetings.get(sel.value);
+            buildSidebar();
+            showOverview();
+        }
+
+        // Helpers
+        function isFieldEvent(name) {
+            const lower = name.toLowerCase();
+            return ['salto', 'lungo', 'alto', 'asta', 'triplo', 'peso', 'disco', 'martello', 'giavellotto', 'vortex'].some(k => lower.includes(k));
+        }
+        function isMiddleDistance(name) {
+            const lower = name.toLowerCase();
+            return ['800', '1000', '1500', 'miglio', '2000', '3000', 'siepi', '5000', '10000', 'marcia'].some(k => lower.includes(k));
+        }
+        function estimateDuration(nomeGara, iscrittiCount, isMiddle, heatsCount) {
+            const lower = nomeGara.toLowerCase();
+            if (isFieldEvent(nomeGara)) {
+                if (lower.includes('asta')) return iscrittiCount * 3 + 15;
+                if (lower.includes('alto')) return iscrittiCount * 2 + 10;
+                return Math.ceil(iscrittiCount * 1.5) + 15;
+            }
+            let assumedHeats = heatsCount || Math.ceil(iscrittiCount / (isMiddle ? 12 : 6));
+            if (lower.includes('10000') || lower.includes('marcia 10')) return assumedHeats * 40;
+            if (lower.includes('5000') || lower.includes('marcia 5')) return assumedHeats * 22;
+            if (lower.includes('3000') || lower.includes('siepi')) return assumedHeats * 15;
+            if (lower.includes('1500') || lower.includes('miglio')) return assumedHeats * 8;
+            if (lower.includes('800') || lower.includes('1000')) return assumedHeats * 6;
+            if (lower.includes('400')) return assumedHeats * 5;
+            return assumedHeats * 4;
+        }
+
+        // Sidebar
+        function buildSidebar() {
+            const list = document.getElementById('race-list');
+            list.innerHTML = '';
+            
+            const groups = { 'Corse': [], 'Salti': [], 'Lanci': [] };
+            currentMeeting.data.forEach((race, index) => {
+                let cat = 'Corse';
+                if (isFieldEvent(race.nome_gara)) {
+                    cat = ['peso', 'disco', 'martello', 'giavellotto', 'vortex'].some(k => race.nome_gara.toLowerCase().includes(k)) ? 'Lanci' : 'Salti';
+                }
+                groups[cat].push({race, index});
+            });
+            
+            for (const [groupName, races] of Object.entries(groups)) {
+                if (races.length === 0) continue;
+                const header = document.createElement('h6');
+                header.className = 'mt-3 mb-2 text-warning fw-bold border-bottom pb-1';
+                header.textContent = groupName;
+                list.appendChild(header);
+                
+                races.forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.className = 'nav-link text-start mb-1 btn btn-sm w-100 text-truncate race-btn';
+                    btn.style.fontSize = '0.85rem';
+                    btn.textContent = item.race.nome_gara;
+                    btn.onclick = () => showRace(item.index, btn);
+                    list.appendChild(btn);
+                });
+            }
+        }
+        
+        function clearActiveNav() {
+            document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+            if(callRoomTimer) clearInterval(callRoomTimer);
+        }
+
+        // Views
+        function showOverview() {
+            clearActiveNav();
+            document.querySelectorAll('#nav-general .nav-link')[0].classList.add('active');
+            
+            let total = 0, anomaliesCount = 0, totalDurationMins = 0;
+            let table = `<table class="table table-striped mt-4"><thead class="table-dark"><tr><th>Gara</th><th>Iscritti</th><th>Tipo</th><th>Stima Durata</th><th>Anomalie (No SB)</th></tr></thead><tbody>`;
+            
+            currentMeeting.data.forEach(r => {
+                total += r.numero_iscritti;
+                const field = isFieldEvent(r.nome_gara);
+                const isMiddle = isMiddleDistance(r.nome_gara);
+                const duration = estimateDuration(r.nome_gara, r.numero_iscritti, isMiddle, null);
+                totalDurationMins += duration;
+                const anomalies = r.iscritti.filter(i => !i.accredito.trim()).length;
+                if (anomalies > 0) anomaliesCount++;
+                
+                table += `<tr>
+                    <td>${r.nome_gara}</td><td>${r.numero_iscritti}</td><td>${field ? 'Concorsi' : 'Corse'}</td>
+                    <td>${Math.round(duration)} min</td><td class="${anomalies > 0 ? 'anomaly' : ''}">${anomalies}</td>
+                </tr>`;
+            });
+            table += `</tbody></table>`;
+            
+            const hours = Math.floor(totalDurationMins / 60);
+            const mins = Math.round(totalDurationMins % 60);
+            
+            document.getElementById('main-content').innerHTML = `
+                <h2>${currentMeeting.name} - Panoramica</h2><hr>
+                <div class="row mb-4">
+                    <div class="col-md-3"><div class="card bg-primary text-white"><div class="card-body"><h4>Totale Gare</h4><h2>${currentMeeting.data.length}</h2></div></div></div>
+                    <div class="col-md-3"><div class="card bg-success text-white"><div class="card-body"><h4>Totale Atleti</h4><h2>${total}</h2></div></div></div>
+                    <div class="col-md-3"><div class="card bg-info text-white"><div class="card-body"><h4>Stima Durata Tot.</h4><h2>${hours}h ${mins}m</h2></div></div></div>
+                    <div class="col-md-3"><div class="card ${anomaliesCount>0?'bg-danger':'bg-secondary'} text-white"><div class="card-body"><h4>Gare con Anomalie</h4><h2>${anomaliesCount}</h2></div></div></div>
+                </div>
+                ${anomaliesCount > 0 ? '<div class="alert alert-warning"><strong>Attenzione:</strong> Alcune gare hanno atleti senza accredito (No Time / No Mark).</div>' : ''}
+                ${table}
+            `;
+        }
+
+        async function showNotes() {
+            clearActiveNav();
+            document.querySelectorAll('#nav-general .nav-link')[2].classList.add('active');
+            
+            const noteData = await db.notes.get(currentMeeting.id) || { meetingId: currentMeeting.id, text: '', orgChart: '', radioPlan: '' };
+            
+            document.getElementById('main-content').innerHTML = `
+                <h2>Appunti TD & Piano Organizzativo</h2><hr>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Appunti e Decisioni del Delegato Tecnico</label>
+                        <textarea id="td-notes" class="form-control" rows="10" placeholder="Scrivi qui gli appunti...">${noteData.text}</textarea>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Organigramma e Giurie</label>
+                        <textarea id="td-org" class="form-control" rows="10" placeholder="Es. Arbitro Pista: Mario Rossi...">${noteData.orgChart}</textarea>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Piano Radio e Comunicazioni</label>
+                        <textarea id="td-radio" class="form-control" rows="5" placeholder="Es. CH 1: Direttore di Gara, CH 2: Call Room...">${noteData.radioPlan}</textarea>
+                    </div>
+                </div>
+                <button class="btn btn-success" onclick="saveNotes()">💾 Salva Modifiche</button>
+                <span id="note-save-feedback" class="ms-3 text-success d-none">Salvato!</span>
+            `;
+        }
+
+        window.saveNotes = async function() {
+            await db.notes.put({
+                meetingId: currentMeeting.id,
+                text: document.getElementById('td-notes').value,
+                orgChart: document.getElementById('td-org').value,
+                radioPlan: document.getElementById('td-radio').value
+            });
+            const fb = document.getElementById('note-save-feedback');
+            fb.classList.remove('d-none');
+            setTimeout(() => fb.classList.add('d-none'), 2000);
+        }
+
+        async function showCallRoom() {
+            clearActiveNav();
+            document.querySelectorAll('#nav-general .nav-link')[1].classList.add('active');
+            
+            const cr1 = localStorage.getItem('cr1_offset') || 30;
+            const cr2 = localStorage.getItem('cr2_offset') || 20;
+            const track = localStorage.getItem('track_offset') || 10;
+            
+            document.getElementById('main-content').innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2>⏱ Call Room Live Dashboard</h2>
+                    <button class="btn btn-primary fw-bold" onclick="syncWise()">🔄 Sincronizza Risultati WISE</button>
+                </div>
+                <hr>
+                <div class="card mb-4 bg-light d-print-none">
+                    <div class="card-body row align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">Minuti CR1 Prima della Gara</label>
+                            <input type="number" id="cr1-offset" class="form-control" value="${cr1}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Minuti CR2 Prima della Gara</label>
+                            <input type="number" id="cr2-offset" class="form-control" value="${cr2}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Minuti Ingresso Pista</label>
+                            <input type="number" id="track-offset" class="form-control" value="${track}">
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-secondary w-100" onclick="saveCallRoomSettings()">Salva Parametri</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4 class="mb-3">Tabellone Orari <span id="live-clock" class="badge bg-dark float-end"></span></h4>
+                <div id="cr-table-container"></div>
+            `;
+            
+            renderCallRoomTable();
+            callRoomTimer = setInterval(() => {
+                document.getElementById('live-clock').textContent = new Date().toLocaleTimeString('it-IT');
+                renderCallRoomTable();
+            }, 10000);
+            document.getElementById('live-clock').textContent = new Date().toLocaleTimeString('it-IT');
+        }
+
+        window.saveCallRoomSettings = function() {
+            localStorage.setItem('cr1_offset', document.getElementById('cr1-offset').value);
+            localStorage.setItem('cr2_offset', document.getElementById('cr2-offset').value);
+            localStorage.setItem('track_offset', document.getElementById('track-offset').value);
+            renderCallRoomTable();
+        }
+
+        async function renderCallRoomTable() {
+            const container = document.getElementById('cr-table-container');
+            if (!container) return;
+            
+            const cr1 = parseInt(localStorage.getItem('cr1_offset') || 30);
+            const cr2 = parseInt(localStorage.getItem('cr2_offset') || 20);
+            const track = parseInt(localStorage.getItem('track_offset') || 10);
+            
+            const races = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
+            races.sort((a,b) => (a.scheduledTime || '23:59').localeCompare(b.scheduledTime || '23:59'));
+            
+            const now = new Date();
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+            
+            let html = '<table class="table table-bordered text-center align-middle"><thead class="table-dark"><tr><th>Orario Gara</th><th>Gara</th><th>Apertura CR1 (-'+cr1+')</th><th>Apertura CR2 (-'+cr2+')</th><th>Ingresso Pista (-'+track+')</th><th>Stato</th></tr></thead><tbody>';
+            
+            races.forEach(r => {
+                if (!r.scheduledTime) return; // Skip races without time
+                if (r.isCompleted) return; // Skip completed
+                
+                const [h, m] = r.scheduledTime.split(':').map(Number);
+                const raceMins = h * 60 + m;
+                
+                const formatTime = (totalMins) => {
+                    let mins = totalMins;
+                    if(mins < 0) mins += 1440;
+                    const hh = Math.floor(mins / 60).toString().padStart(2, '0');
+                    const mm = (mins % 60).toString().padStart(2, '0');
+                    return hh+':'+mm;
+                };
+                
+                const cr1Mins = raceMins - cr1;
+                const cr2Mins = raceMins - cr2;
+                const trackMins = raceMins - track;
+                
+                let rowClass = "";
+                let stato = "-";
+                
+                if (nowMins >= raceMins) {
+                    rowClass = "table-success";
+                    stato = "IN CORSO";
+                } else if (nowMins >= trackMins) {
+                    rowClass = "table-warning";
+                    stato = "IN PISTA";
+                } else if (nowMins >= cr2Mins) {
+                    rowClass = "table-danger";
+                    stato = "IN CR 2";
+                } else if (nowMins >= cr1Mins) {
+                    rowClass = "table-info";
+                    stato = "IN CR 1";
+                }
+                
+                html += \`<tr class="\${rowClass}">
+                    <td class="fw-bold fs-5">\${r.scheduledTime}</td>
+                    <td class="text-start fw-bold">\${r.name}</td>
+                    <td>\${formatTime(cr1Mins)}</td>
+                    <td>\${formatTime(cr2Mins)}</td>
+                    <td>\${formatTime(trackMins)}</td>
+                    <td class="fw-bold">\${stato}</td>
+                </tr>\`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        window.syncWise = async function() {
+            if (!currentMeeting.resultsUrl) {
+                alert("URL Risultati non trovato per questo meeting.");
+                return;
+            }
+            try {
+                const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(currentMeeting.resultsUrl);
+                const res = await fetch(proxyUrl);
+                const json = await res.json();
+                const htmlStr = json.contents;
+                
+                if (!htmlStr) throw new Error("Risposta vuota");
+                
+                // Parse HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlStr, "text/html");
+                const links = Array.from(doc.querySelectorAll('a')).map(a => a.textContent.trim());
+                
+                const races = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
+                let completedCount = 0;
+                
+                for (let r of races) {
+                    if (r.isCompleted) continue;
+                    // Check if race name exists in the links text
+                    if (links.some(l => l.includes(r.name) || r.name.includes(l) && l.length > 5)) {
+                        r.isCompleted = 1;
+                        await db.races.put(r);
+                        completedCount++;
+                    }
+                }
+                
+                alert(\`Sincronizzazione completata! \${completedCount} gare segnate come terminate.\`);
+                renderCallRoomTable();
+                
+            } catch(e) {
+                console.error(e);
+                alert("Errore durante la sincronizzazione WISE. Controlla la console.");
+            }
+        }
+
+        async function showRace(index, btn) {
+            clearActiveNav();
+            if(btn) btn.classList.add('active');
+            
+            const race = currentMeeting.data[index];
+            const field = isFieldEvent(race.nome_gara);
+            const middleDist = isMiddleDistance(race.nome_gara);
+            const estTime = estimateDuration(race.nome_gara, race.numero_iscritti, middleDist, null);
+            
+            const raceDb = await db.races.get(currentMeeting.id + '_' + race.nome_gara);
+            const schedTime = raceDb ? raceDb.scheduledTime : '';
+            
+            let html = \`<div class="d-flex justify-content-between align-items-center">
+                <h2>\${race.nome_gara}</h2>
+                <div>
+                    <span id="est-time-\${index}" class="badge bg-info fs-6 me-2">⏱ Stima: \${Math.round(estTime)} min</span>
+                    <div class="input-group input-group-sm d-inline-flex w-auto d-print-none">
+                        <span class="input-group-text">Orario:</span>
+                        <input type="time" class="form-control" id="sched-time-\${index}" value="\${schedTime}" onchange="saveRaceTime('\${race.nome_gara}', this.value)">
+                    </div>
+                </div>
+            </div><hr>\`;
+            
+            if (race.numero_iscritti === 0) {
+                html += \`<div class="alert alert-info">Nessun iscritto a questa gara.</div>\`;
+                document.getElementById('main-content').innerHTML = html;
+                return;
+            }
+
+            // Same generation logic as before... (omitted full logic for brevity, will inject via build_dashboard.js)
+            html += \`<div id="race-content-placeholder">Caricamento interfaccia gara...</div>\`;
+            document.getElementById('main-content').innerHTML = html;
+            
+            // Re-render tracks if data exists
+            const savedData = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
+            if (savedData) {
+                // To be implemented via the original build_dashboard logic
+            }
+        }
+
+        window.saveRaceTime = async function(name, timeVal) {
+            const r = await db.races.get(currentMeeting.id + '_' + name);
+            if(r) {
+                r.scheduledTime = timeVal;
+                await db.races.put(r);
+            }
+        }
+
+        function showShoeControl() {
+            // Shoe control HTML...
+        }
+
+        // Boot
+        window.onload = init;
+    </script>
+</body>
+</html>
+\n
+        async function showRace(index, btn) {
+            clearActiveNav();
+            if(btn) btn.classList.add('active');
+            
+            const race = currentMeeting.data[index];
+            const field = isFieldEvent(race.nome_gara);
+            const middleDist = isMiddleDistance(race.nome_gara);
+            const estTime = estimateDuration(race.nome_gara, race.numero_iscritti, middleDist, null);
+            
+            const raceDb = await db.races.get(currentMeeting.id + '_' + race.nome_gara);
+            const schedTime = raceDb ? raceDb.scheduledTime : '';
+            
+            let html = `<div class="d-flex justify-content-between align-items-center">
+                <h2>${race.nome_gara}</h2>
+                <div>
+                    <span id="est-time-${index}" class="badge bg-info fs-6 me-2">⏱ Stima: ${Math.round(estTime)} min</span>
+                    <div class="input-group input-group-sm d-inline-flex w-auto d-print-none">
+                        <span class="input-group-text">Orario:</span>
+                        <input type="time" class="form-control" id="sched-time-${index}" value="${schedTime}" onchange="saveRaceTime('${race.nome_gara.replace(/'/g, "\\'")}', this.value)">
+                    </div>
+                </div>
+            </div><hr>`;
+            
+            if (race.numero_iscritti === 0) {
+                html += `<div class="alert alert-info">Nessun iscritto a questa gara.</div>`;
+                document.getElementById('main-content').innerHTML = html;
+                return;
+            }
+
+            if (field) {
+                const lower = race.nome_gara.toLowerCase();
+                const vertical = lower.includes('alto') || lower.includes('asta');
+                html += `
+                <div class="card p-3 mb-4 d-print-none">
+                    <h5>Impostazioni Pedana (WA TR 25 ${vertical ? '& TR 26' : ''})</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Criterio Ordine di Partenza:</label>
+                        <select id="field-order-${index}" class="form-select">
+                            <option value="inverse">Ordine Inverso di Accredito (Consigliato Finali)</option>
+                            <option value="random">Ordine Casuale (Consigliato Qualificazioni)</option>
+                        </select>
+                    </div>`;
+                    
+                if (vertical) {
+                    html += `
+                    <div class="mb-3">
+                        <label class="form-label">Progressione Misure (TR 26.1):</label>
+                        <input type="text" id="progression-${index}" class="form-control" placeholder="Es. 1.80 1.85 1.90 1.93" onkeyup="validateProgression(this, '${race.nome_gara.replace(/'/g, "\\'")}')">
+                        <div id="progression-feedback-${index}" class="form-text">Inserisci le misure separate da spazio o virgola. Saranno stampate sul foglio gara.</div>
+                    </div>`;
+                }
+                    
+                html += `<button class="btn btn-primary" onclick="generateField(${index})">Genera Start List</button>
+                </div>`;
+            } else {
+                html += `
+                <div class="card p-3 mb-4 d-print-none">
+                    <h5>Impostazioni Pista (WA TR 20)</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Corsie Attive Impianto:</label>
+                        <input type="text" id="lanes-${index}" class="form-control" value="${middleDist ? '12' : '1,2,3,4,5,6'}" placeholder="${middleDist ? 'Max atleti per batteria' : 'Es. 1,2,3,4,5,6'}">
+                        <div class="form-text">${middleDist ? 'Inserisci il numero massimo di atleti per batteria (es. 12 per gli 800m).' : 'Se la corsia 1 non è utilizzabile, inserisci "2,3,4,5,6". Il sistema calcolerà automaticamente le batterie necessarie e distribuirà gli atleti al centro della pista.'}</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="generateTrack(${index}, ${middleDist})">Genera Serie (Zig-Zag)</button>
+                </div>`;
+            }
+            
+            html += `<div id="results-${index}"></div>`;
+            document.getElementById('main-content').innerHTML = html;
+            
+            const savedHtml = localStorage.getItem('race_' + currentMeeting.id + '_' + index);
+            if (savedHtml) {
+                document.getElementById('results-' + index).innerHTML = savedHtml;
+            } else {
+                if (field) generateField(index);
+                else generateTrack(index, middleDist);
+            }
+        }
+\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    </script>\n</body>\n</html>
