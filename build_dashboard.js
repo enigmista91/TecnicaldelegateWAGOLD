@@ -95,6 +95,17 @@ const html = `
                     list.appendChild(btn);
                 });
             }
+            
+            const toolsHeader = document.createElement('h6');
+            toolsHeader.className = 'mt-4 mb-2 text-primary fw-bold border-bottom pb-1';
+            toolsHeader.textContent = 'Strumenti TD';
+            list.appendChild(toolsHeader);
+            
+            const shoeBtn = document.createElement('button');
+            shoeBtn.className = 'nav-link text-start mb-1 btn btn-sm w-100 text-truncate text-success fw-bold';
+            shoeBtn.innerHTML = '👟 Controllo Scarpe';
+            shoeBtn.onclick = () => showShoeControl(shoeBtn);
+            list.appendChild(shoeBtn);
         }
 
         function showOverview() {
@@ -134,6 +145,73 @@ const html = `
             }
             
             html += table;
+            document.getElementById('main-content').innerHTML = html;
+        }
+
+        function showShoeControl(btn) {
+            document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+            
+            let html = \`
+            <h2>👟 Controllo Scarpe (Shoe Compliance TR 5)</h2>
+            <hr>
+            <div class="row">
+                <div class="col-md-7">
+                    <div class="card mb-4 border-success shadow-sm">
+                        <div class="card-header bg-success text-white fw-bold">
+                            Portale Ufficiale World Athletics
+                        </div>
+                        <div class="card-body">
+                            <p>Utilizza il database ufficiale di World Athletics per verificare istantaneamente se il modello di scarpa utilizzato dall'atleta è approvato per la competizione.</p>
+                            <a href="https://certcheck.worldathletics.org/" target="_blank" class="btn btn-lg btn-success w-100 mb-3 fw-bold shadow">
+                                🔍 Apri WA Shoe CertCheck
+                            </a>
+                            <p class="text-muted small mb-0">Il portale WA si aprirà in una nuova scheda sicura del browser, permettendoti di effettuare la verifica in tempo reale direttamente dal campo o in Call Room.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="card border-info shadow-sm">
+                        <div class="card-header bg-info text-white fw-bold">
+                            Regole Spessori (Sintesi TR 5)
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush small">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Gare su Pista (tutte)</strong>
+                                    <span class="badge bg-primary rounded-pill">Max 20 mm</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Salto Triplo</strong>
+                                    <span class="badge bg-primary rounded-pill">Max 25 mm</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Altri Concorsi (Lungo, Alto, Asta)</strong>
+                                    <span class="badge bg-primary rounded-pill">Max 20 mm</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Strada e Cross</strong>
+                                    <span class="badge bg-primary rounded-pill">Max 40 mm</span>
+                                </li>
+                            </ul>
+                            <div class="p-2 bg-light border-top">
+                                <small class="text-muted"><i class="fw-bold text-warning">Nota:</i> Dal 1 Novembre 2024 è in vigore la regola armonizzata a 20mm per tutte le gare su pista (velocità e mezzofondo).</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-2 shadow-sm border-secondary">
+                <div class="card-header bg-secondary text-white fw-bold">
+                    Anteprima Database WA (Se supportato dal browser)
+                </div>
+                <div class="card-body p-0 bg-light" style="min-height: 500px">
+                    <iframe src="https://certcheck.worldathletics.org/" width="100%" height="600px" style="border:none;"></iframe>
+                </div>
+            </div>
+            \`;
+            
             document.getElementById('main-content').innerHTML = html;
         }
 
