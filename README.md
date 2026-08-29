@@ -61,6 +61,11 @@ Possibilità di gestire l'ordine di partenza (pedana) con un semplice clic.
 - Node.js installato
 - Browser Chromium/Microsoft Edge 
 
+## 🤝 Contribuire
+Le Pull Request (PR) sono ben accette e incoraggiate! Per mantenere l'ordine e la qualità del progetto, ti chiediamo di seguire queste due semplici regole:
+1. Ogni Pull Request deve essere sempre corredata da una **Issue** aperta in precedenza, in modo da poterne discutere l'implementazione o segnalare il bug.
+2. I merge delle PR verranno approvati ed effettuati **esclusivamente dal proprietario (owner)** del repository, dopo un'opportuna code review.
+
 ## ⚖️ Licenza e Disclaimer
 Questo progetto è distribuito con licenza **[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/)**.
 
