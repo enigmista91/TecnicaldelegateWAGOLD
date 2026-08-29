@@ -12,7 +12,7 @@ const html = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>\${meetingInfo.name} - TD Dashboard</title>
+    <title>${meetingInfo.name} - TD Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; padding-top: 20px; }
@@ -26,9 +26,9 @@ const html = `
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 sidebar">
+            <div class="col-md-3 sidebar d-print-none">
                 <h4 class="text-primary fw-bold">🥇 TD Dashboard</h4>
-                <p class="text-muted small">\${meetingInfo.name}</p>
+                <p class="text-muted small">${meetingInfo.name}</p>
                 <hr>
                 <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
                     <button class="nav-link active text-start mb-2" onclick="showOverview()" type="button">Panoramica Meeting</button>
@@ -233,7 +233,7 @@ const html = `
 
             if (field) {
                 html += \`
-                <div class="card p-3 mb-4">
+                <div class="card p-3 mb-4 d-print-none">
                     <h5>Impostazioni Pedana (WA TR 25)</h5>
                     <div class="mb-3">
                         <label class="form-label">Criterio Ordine di Partenza:</label>
@@ -248,7 +248,7 @@ const html = `
                 \`;
             } else {
                 html += \`
-                <div class="card p-3 mb-4">
+                <div class="card p-3 mb-4 d-print-none">
                     <h5>Impostazioni Batterie/Serie (WA TR 20)</h5>
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -264,11 +264,18 @@ const html = `
             }
             
             document.getElementById('main-content').innerHTML = html;
+            
+            const cached = localStorage.getItem('race_' + index);
+            if (cached) {
+                document.getElementById(\`results-\${index}\`).innerHTML = cached + \`<div class="alert alert-secondary mt-2 small d-print-none">💾 Risultati recuperati dalla memoria locale. Se modifichi le impostazioni, clicca nuovamente su "Genera" per sovrascrivere.</div>\`;
+            }
         }
 
         function generateField(index) {
             const race = data[index];
             const method = document.getElementById(\`field-order-\${index}\`).value;
+            const lower = race.nome_gara.toLowerCase();
+            const isVertical = lower.includes('alto') || lower.includes('asta');
             
             let iscritti = [...race.iscritti].map(i => ({...i, val: parseFloat(i.accredito) || -1}));
             
@@ -278,16 +285,37 @@ const html = `
                 iscritti.sort(() => Math.random() - 0.5);
             }
             
-            let html = \`<h4>Start List Pedana</h4><table class="table table-bordered">
-                <thead class="table-dark"><tr><th>Ordine</th><th>Pett.</th><th>Atleta</th><th>Cat</th><th>Società</th><th>Accredito</th></tr></thead><tbody>\`;
+            let html = \`<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
+                <h4>Foglio Gara (Start List)</h4>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨 Stampa</button>
+            </div>
+            <table class="table table-bordered table-sm" style="font-size: 0.85rem;">
+                <thead class="table-light">\`;
+                
+            if (isVertical) {
+                html += \`<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Società</th><th width="5%">SB</th>
+                <th width="5%"></th><th width="5%"></th><th width="5%"></th><th width="5%"></th><th width="5%"></th><th width="5%"></th><th width="5%"></th><th width="5%"></th>
+                <th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>\`;
+            } else {
+                html += \`<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Società</th><th width="5%">SB</th>
+                <th width="7%">1°</th><th width="7%">2°</th><th width="7%">3°</th><th width="7%">4°</th><th width="7%">5°</th><th width="7%">6°</th>
+                <th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>\`;
+            }
             
             iscritti.forEach((a, i) => {
-                const athleteName = a.fidal_link ? \`<a href="\${a.fidal_link}" target="_blank">\${a.nominativo}</a>\` : a.nominativo;
-                html += \`<tr><td>\${i+1}</td><td>\${a.pettorale}</td><td>\${athleteName}</td><td>\${a.categoria}</td><td>\${a.societa}</td><td>\${a.accredito}</td></tr>\`;
+                const athleteName = a.fidal_link ? \`<a href="\${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">\${a.nominativo}</a>\` : \`<span class="fw-bold">\${a.nominativo}</span>\`;
+                html += \`<tr><td>\${i+1}</td><td>\${a.pettorale}</td><td>\${athleteName}</td><td><small>\${a.societa.substring(0,20)}</small></td><td>\${a.accredito}</td>\`;
+                
+                if (isVertical) {
+                    html += \`<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>\`;
+                } else {
+                    html += \`<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>\`;
+                }
             });
             html += \`</tbody></table>\`;
             
             document.getElementById(\`results-\${index}\`).innerHTML = html;
+            localStorage.setItem('race_' + index, html);
         }
 
         function generateTrack(index, isMiddle) {
@@ -316,7 +344,10 @@ const html = `
                 }
             });
             
-            let html = \`<h4>Composizione Serie (\${heatsCount} Serie Generate)</h4>\`;
+            let html = \`<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
+                <h4>Composizione Serie (\${heatsCount} Serie Generate)</h4>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨 Stampa</button>
+            </div>\`;
             
             // Preferred lanes for standard sprint
             const pref6 = [3, 4, 5, 6, 2, 1];
@@ -324,8 +355,8 @@ const html = `
             const pref = maxLanes === 6 ? pref6 : (maxLanes === 8 ? pref8 : Array.from({length: maxLanes}, (_,i)=>i+1));
             
             heats.forEach((h, i) => {
-                html += \`<div class="mt-4"><h5>Serie \${i+1}</h5><table class="table table-bordered">
-                    <thead class="table-light"><tr><th>\${isMiddle ? 'Posizione' : 'Corsia'}</th><th>Pett.</th><th>Atleta</th><th>Società</th><th>SB (Seed)</th></tr></thead><tbody>\`;
+                html += \`<div class="mt-4" style="page-break-inside: avoid;"><h5>Serie \${i+1}</h5><table class="table table-bordered table-sm">
+                    <thead class="table-light"><tr><th>\${isMiddle ? 'Pos' : 'Corsia'}</th><th>Pett</th><th>Atleta</th><th>Società</th><th>SB</th><th width="15%">Risultato</th><th width="5%">Pos</th></tr></thead><tbody>\`;
                 
                 if (!isMiddle) {
                     // Assign lanes
@@ -340,14 +371,15 @@ const html = `
                 }
                 
                 h.forEach(a => {
-                    const athleteName = a.fidal_link ? \`<a href="\${a.fidal_link}" target="_blank">\${a.nominativo}</a>\` : a.nominativo;
-                    html += \`<tr><td><strong>\${a.lane}</strong></td><td>\${a.pettorale}</td><td>\${athleteName}</td><td>\${a.societa}</td><td>\${a.accredito}</td></tr>\`;
+                    const athleteName = a.fidal_link ? \`<a href="\${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">\${a.nominativo}</a>\` : \`<span class="fw-bold">\${a.nominativo}</span>\`;
+                    html += \`<tr><td><strong>\${a.lane}</strong></td><td>\${a.pettorale}</td><td>\${athleteName}</td><td><small>\${a.societa.substring(0,20)}</small></td><td>\${a.accredito}</td><td></td><td></td></tr>\`;
                 });
                 
                 html += \`</tbody></table></div>\`;
             });
             
             document.getElementById(\`results-\${index}\`).innerHTML = html;
+            localStorage.setItem('race_' + index, html);
         }
 
         // Init
