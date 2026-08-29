@@ -1,58 +1,4 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>WA Gold - TD Dashboard 2.0</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; }
-        .sidebar { min-height: 100vh; background: #343a40; color: white; padding-top: 20px; }
-        .nav-link { color: #c2c7d0; cursor: pointer; transition: 0.2s; }
-        .nav-link:hover, .nav-link.active { color: white; background: #495057; border-radius: 5px; }
-        .main-content { padding: 30px; background: white; min-height: 100vh; box-shadow: -5px 0 15px rgba(0,0,0,0.05); }
-        .page-break { page-break-before: always; }
-        .anomaly { background-color: #ffeeba !important; font-weight: bold; }
-        @media print {
-            .d-print-none { display: none !important; }
-            .sidebar { display: none !important; }
-            .main-content { padding: 0 !important; box-shadow: none !important; width: 100% !important; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-2 sidebar d-print-none" id="sidebar">
-                <div class="px-3 mb-4">
-                    <h5 class="text-warning fw-bold">🥇 WA Gold TD</h5>
-                    <select id="meeting-selector" class="form-select form-select-sm mt-3" onchange="switchMeeting()">
-                    </select>
-                </div>
-                
-                <div class="px-2" id="nav-general">
-                    <button class="nav-link w-100 text-start btn btn-sm mb-1 active" onclick="showOverview()">📊 Panoramica Meeting</button>
-                    <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showCallRoom()">⏱ Call Room Live</button>
-                    <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showNotes()">📝 Appunti TD & Radio</button>
-                    <button class="nav-link w-100 text-start btn btn-sm mb-1 text-success fw-bold" onclick="showShoeControl()">👟 Controllo Scarpe</button>
-                </div>
-                
-                <hr class="text-secondary">
-                <div class="px-2" id="race-list"></div>
-            </div>
-            
-            <!-- Main Content -->
-            <div class="col-md-10 main-content" id="main-content">
-                <!-- Injected via JS -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Application Logic -->
-    <script>
-        // 1. Database Setup
+// 1. Database Setup
         const db = new Dexie('WAGoldDatabase');
         db.version(1).stores({
             meetings: 'id, name, date, data, resultsUrl',
@@ -518,7 +464,7 @@
     
 // ====== LEGACY FUNCTIONS ======
         function generateField(index) {
-            const race = currentMeeting.data[index];
+            const race = data[index];
             const method = document.getElementById(`field-order-${index}`).value;
             const lower = race.nome_gara.toLowerCase();
             const isVertical = lower.includes('alto') || lower.includes('asta');
@@ -592,7 +538,7 @@
         }
 
         function generateTrack(index, isMiddle) {
-            const race = currentMeeting.data[index];
+            const race = data[index];
             const lanesInputStr = document.getElementById(`lanes-${index}`).value;
             
             let activeLanes = [];
@@ -659,7 +605,7 @@
         }
 
         function renderTrackHeats(index) {
-            const race = currentMeeting.data[index];
+            const race = data[index];
             const raceDataStr = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
             if (!raceDataStr) return;
             
@@ -812,6 +758,3 @@
             document.getElementById(`results-${index}`).innerHTML = html;
             localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
         }
-    </script>
-</body>
-</html>
