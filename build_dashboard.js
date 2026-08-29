@@ -346,9 +346,9 @@ const html = `
                     <h5>Impostazioni Batterie/Serie (WA TR 20)</h5>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Corsie disponibili / Max per serie:</label>
-                            <input type="number" id="lanes-\${index}" class="form-control" value="\${middleDist ? 12 : 6}">
-                            <small class="text-muted">\${middleDist ? 'Massimo consigliato per mezzofondo: 12-15' : 'Es. 6 o 8 corsie per la velocità'}</small>
+                            <label class="form-label">\${middleDist ? 'Atleti Max per serie:' : 'Corsie attive (es. 1,2,3,4,5,6):'}</label>
+                            <input type="text" id="lanes-\${index}" class="form-control" value="\${middleDist ? '12' : '1,2,3,4,5,6'}">
+                            <small class="text-muted">\${middleDist ? 'Massimo consigliato per mezzofondo: 12-15' : 'Elenca le corsie utilizzabili separate da virgola (es. 2,3,4,5,6,7,8 se la 1 è rotta)'}</small>
                         </div>
                     </div>
                     <button class="btn btn-primary" onclick="generateTrack(\${index}, \${middleDist})">Genera Serie (Zig-Zag)</button>
@@ -441,7 +441,18 @@ const html = `
 
         function generateTrack(index, isMiddle) {
             const race = data[index];
-            const maxLanes = parseInt(document.getElementById(\`lanes-\${index}\`).value) || 6;
+            const lanesInputStr = document.getElementById(\`lanes-\${index}\`).value;
+            
+            let activeLanes = [];
+            let maxLanes = 6;
+            
+            if (isMiddle) {
+                maxLanes = parseInt(lanesInputStr) || 12;
+            } else {
+                activeLanes = lanesInputStr.replace(/[^0-9,]/g, '').split(',').map(Number).filter(x => x > 0);
+                if (activeLanes.length === 0) activeLanes = [1,2,3,4,5,6];
+                maxLanes = activeLanes.length;
+            }
             
             let iscritti = [...race.iscritti].map(i => ({...i, val: timeToSeconds(i.accredito)}));
             iscritti.sort((a, b) => a.val - b.val); // fastest first
@@ -465,7 +476,7 @@ const html = `
                 }
             });
             
-            const raceData = { heats, isMiddle, maxLanes };
+            const raceData = { heats, isMiddle, maxLanes, activeLanes };
             localStorage.setItem('race_data_' + index, JSON.stringify(raceData));
             
             renderTrackHeats(index);
@@ -498,6 +509,7 @@ const html = `
             const heats = raceData.heats;
             const isMiddle = raceData.isMiddle;
             const maxLanes = raceData.maxLanes;
+            const activeLanes = raceData.activeLanes || Array.from({length: maxLanes}, (_,i)=>i+1);
             const heatsCount = heats.length;
             
             let html = \`<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
@@ -508,7 +520,18 @@ const html = `
             // Preferred lanes for standard sprint
             const pref6 = [3, 4, 5, 6, 2, 1];
             const pref8 = [4, 5, 3, 6, 2, 7, 1, 8];
-            const pref = maxLanes === 6 ? pref6 : (maxLanes === 8 ? pref8 : Array.from({length: maxLanes}, (_,i)=>i+1));
+            const pref9 = [5, 6, 4, 7, 3, 8, 2, 9, 1];
+            
+            let basePref = pref6;
+            const maxActive = Math.max(...activeLanes);
+            if (maxActive > 6) basePref = pref8;
+            if (maxActive > 8) basePref = pref9;
+            
+            // Filter basePref by activeLanes
+            let pref = basePref.filter(l => activeLanes.includes(l));
+            activeLanes.forEach(l => {
+                if (!pref.includes(l)) pref.push(l); // fallback for unusual lanes
+            });
             
             heats.forEach((h, i) => {
                 html += \`<div class="mt-4" style="page-break-inside: avoid;">
