@@ -5,7 +5,303 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WA Gold - TD Dashboard 2.0</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
+    <script src="https://unpkg.com/dexie@latest/dist/dexie.js">function generateField(index) {
+            const race = currentMeeting.data[index];
+            const method = document.getElementById(`field-order-${index}`).value;
+            const lower = race.nome_gara.toLowerCase();
+            const isVertical = lower.includes('alto') || lower.includes('asta');
+            
+            let iscritti = [...race.iscritti].map(i => ({...i, val: parseFloat(i.accredito) || -1}));
+            
+            if (method === 'inverse') {
+                iscritti.sort((a, b) => a.val - b.val); // lowest to highest (highest jumps last)
+            } else {
+                iscritti.sort(() => Math.random() - 0.5);
+            }
+            
+            let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
+                <h4>Foglio Gara (Start List)</h4>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">­ƒû¿ Stampa</button>
+            </div>
+            <table class="table table-bordered table-sm" style="font-size: 0.85rem;">
+                <thead class="table-light">`;
+                
+            let progCols = 10;
+            if (isVertical) {
+                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Societ├á</th><th width="5%">SB</th>`;
+                const progInput = document.getElementById(`progression-${index}`);
+                let measuresArray = [];
+                if (progInput && progInput.value.trim() !== '') {
+                    measuresArray = progInput.value.replace(/,/g, ' ').split(/\s+/).filter(x=>x);
+                    progCols = Math.max(10, measuresArray.length + 2);
+                }
+                for(let i=0; i<progCols; i++) {
+                    const m = measuresArray[i] || '';
+                    html += `<th>${m}</th>`;
+                }
+                html += `<th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
+            } else {
+                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Societ├á</th><th width="5%">SB</th>
+                <th width="7%">1┬░</th><th width="7%">2┬░</th><th width="7%">3┬░</th><th width="7%">4┬░</th><th width="7%">5┬░</th><th width="7%">6┬░</th>
+                <th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
+            }
+            
+            iscritti.forEach((a, i) => {
+                const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
+                html += `<tr>
+                    <td><strong>${i+1}</strong></td>
+                    <td>${a.pettorale}</td>
+                    <td>${athleteName}</td>
+                    <td><small>${a.societa.substring(0,20)}</small></td>
+                    <td>${a.accredito}</td>`;
+                
+                if (isVertical) {
+                    for(let attempt=0; attempt<progCols; attempt++) {
+                        html += `<td></td>`;
+                    }
+                    html += `<td></td><td></td>`;
+                } else {
+                    for(let attempt=1; attempt<=3; attempt++) {
+                        html += `<td></td>`;
+                    }
+                    html += `<td class="table-light"></td>`; // Migliore 3 prove
+                    for(let attempt=4; attempt<=6; attempt++) {
+                        html += `<td></td>`;
+                    }
+                    html += `<td></td><td></td>`; // Misura finale e Pos
+                }
+                
+                html += `</tr>`;
+            });
+            html += `</tbody></table>`;
+            
+            document.getElementById(`results-${index}`).innerHTML = html;
+            localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
+        }
+
+        function generateTrack(index, isMiddle) {
+            const race = currentMeeting.data[index];
+            const lanesInputStr = document.getElementById(`lanes-${index}`).value;
+            
+            let activeLanes = [];
+            let maxLanes = 6;
+            
+            if (isMiddle) {
+                maxLanes = parseInt(lanesInputStr) || 12;
+            } else {
+                activeLanes = lanesInputStr.replace(/[^0-9,]/g, '').split(',').map(Number).filter(x => x > 0);
+                if (activeLanes.length === 0) activeLanes = [1,2,3,4,5,6];
+                maxLanes = activeLanes.length;
+            }
+            
+            let iscritti = [...race.iscritti].map(i => ({...i, val: timeToSeconds(i.accredito)}));
+            iscritti.sort((a, b) => a.val - b.val); // fastest first
+            
+            const total = iscritti.length;
+            const heatsCount = Math.ceil(total / maxLanes);
+            
+            const heats = Array.from({length: heatsCount}, () => []);
+            let dir = 1;
+            let current = 0;
+            
+            // Zig zag distribution
+            iscritti.forEach(a => {
+                heats[current].push(a);
+                if (dir === 1) {
+                    if (current < heatsCount - 1) current++;
+                    else dir = -1;
+                } else {
+                    if (current > 0) current--;
+                    else dir = 1;
+                }
+            });
+            
+            const raceData = { heats, isMiddle, maxLanes, activeLanes };
+            localStorage.setItem('race_data_' + currentMeeting.id + '_' + index, JSON.stringify(raceData));
+            
+            const badge = document.getElementById(`est-time-${index}`);
+            if (badge) {
+                const updatedTime = estimateDuration(race.nome_gara, total, isMiddle, heatsCount);
+                badge.textContent = `ÔÅ▒ Stima: ${Math.round(updatedTime)} min`;
+            }
+            
+            renderTrackHeats(index);
+        }
+
+        function moveAthlete(index, fromHeat, pettorale, toHeatSelect) {
+            const toHeat = parseInt(toHeatSelect.value);
+            if (fromHeat === toHeat) return;
+            
+            let raceData = JSON.parse(localStorage.getItem('race_data_' + currentMeeting.id + '_' + index));
+            let heats = raceData.heats;
+            
+            // Find athlete
+            let athleteIndex = heats[fromHeat].findIndex(a => a.pettorale === pettorale);
+            if (athleteIndex > -1) {
+                const athlete = heats[fromHeat].splice(athleteIndex, 1)[0];
+                heats[toHeat].push(athlete);
+                
+                localStorage.setItem('race_data_' + currentMeeting.id + '_' + index, JSON.stringify(raceData));
+                renderTrackHeats(index);
+            }
+        }
+
+        function renderTrackHeats(index) {
+            const race = currentMeeting.data[index];
+            const raceDataStr = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
+            if (!raceDataStr) return;
+            
+            const raceData = JSON.parse(raceDataStr);
+            const heats = raceData.heats;
+            const isMiddle = raceData.isMiddle;
+            const maxLanes = raceData.maxLanes;
+            const activeLanes = raceData.activeLanes || Array.from({length: maxLanes}, (_,i)=>i+1);
+            const heatsCount = heats.length;
+            
+            let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
+                <h4>Composizione Serie (${heatsCount} Serie Generate)</h4>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">­ƒû¿ Stampa</button>
+            </div>`;
+            
+            // Preferred lanes for standard sprint
+            const pref6 = [3, 4, 5, 6, 2, 1];
+            const pref8 = [4, 5, 3, 6, 2, 7, 1, 8];
+            const pref9 = [5, 6, 4, 7, 3, 8, 2, 9, 1];
+            
+            let basePref = pref6;
+            const maxActive = Math.max(...activeLanes);
+            if (maxActive > 6) basePref = pref8;
+            if (maxActive > 8) basePref = pref9;
+            
+            // Filter basePref by activeLanes
+            let pref = basePref.filter(l => activeLanes.includes(l));
+            activeLanes.forEach(l => {
+                if (!pref.includes(l)) pref.push(l); // fallback for unusual lanes
+            });
+            
+            heats.forEach((h, i) => {
+                html += `<div class="mt-4" style="page-break-inside: avoid;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5>Serie ${i+1}</h5>
+                    </div>
+                    <table class="table table-bordered table-sm">
+                    <thead class="table-light"><tr><th>${isMiddle ? 'Pos' : 'Corsia'}</th><th>Pett</th><th>Atleta</th><th>Societ├á</th><th>SB</th><th width="15%">Risultato</th><th width="5%">Pos</th><th class="d-print-none" width="10%">Sposta</th></tr></thead><tbody>`;
+                
+                if (!isMiddle) {
+                    // Assign lanes
+                    h.forEach((a, j) => {
+                        a.lane = pref[j] || '-';
+                    });
+                    h.sort((a,b) => (a.lane === '-' ? 99 : a.lane) - (b.lane === '-' ? 99 : b.lane));
+                } else {
+                    h.forEach((a, j) => {
+                        a.lane = j + 1;
+                    });
+                }
+                
+                h.forEach(a => {
+                    const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
+                    
+                    // Heat selector
+                    let selectHtml = `<select class="form-select form-select-sm" onchange="moveAthlete(${index}, ${i}, '${a.pettorale}', this)">`;
+                    for(let x=0; x<heatsCount; x++) {
+                        selectHtml += `<option value="${x}" ${x===i ? 'selected' : ''}>S ${x+1}</option>`;
+                    }
+                    selectHtml += `</select>`;
+                    
+                    html += `<tr><td><strong>${a.lane}</strong></td><td>${a.pettorale}</td><td>${athleteName}</td><td><small>${a.societa.substring(0,20)}</small></td><td>${a.accredito}</td><td></td><td></td><td class="d-print-none">${selectHtml}</td></tr>`;
+                });
+                
+                html += `</tbody></table></div>`;
+            });
+            
+            if (isMiddle) {
+                const numLaps = getLaps(race.nome_gara);
+                html += `<div style="page-break-before: always;" class="mt-5"></div>
+                <div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
+                    <h4 class="mt-4 text-primary">Foglio Contagiri (${race.nome_gara})</h4>
+                    <div>
+                        <a href="https://matteomircoli.it/contagiristatico/garav2.html" target="_blank" class="btn btn-outline-success btn-sm mt-4 me-2">ÔÅ▒ Contagiri Elettronico</a>
+                        <button class="btn btn-outline-primary btn-sm mt-4" onclick="window.print()">­ƒû¿ Stampa Foglio Cartaceo</button>
+                    </div>
+                </div>
+                `;
+                const lapStyleEl = document.getElementById('lap-style-' + index);
+                const lapStyle = lapStyleEl ? lapStyleEl.value : 'normal';
+
+                html += `<h4 class="mt-4 d-none d-print-block">Foglio Contagiri - ${race.nome_gara}</h4>`;
+
+                if (lapStyle === 'normal') {
+                    html += `
+                    <div class="d-print-none alert alert-info small"><strong>Stile Normale:</strong> Griglia vuota. Il giudice segna a mano il pettorale in base alla posizione (Pos).</div>`;
+                    
+                    heats.forEach((h, i) => {
+                        if (h.length === 0) return;
+                        html += `<div class="mt-4" style="page-break-inside: avoid;">
+                            <h5>Contagiri - Serie ${i+1}</h5>
+                            <table class="table table-bordered table-sm text-center" style="font-size: 0.8rem;">
+                            <thead class="table-light"><tr><th width="5%">Pos</th><th width="10%">Pettorale</th>`;
+                        for(let lap=numLaps; lap>=2; lap--) {
+                            html += `<th>-${lap}</th>`;
+                        }
+                        html += `<th>ARRIVO</th></tr></thead><tbody>`;
+                        
+                        const numRows = h.length + 3;
+                        for (let row = 1; row <= numRows; row++) {
+                            html += `<tr><td><strong>${row}┬░</strong></td><td></td>`;
+                            for(let lap=1; lap<=numLaps; lap++) {
+                                html += `<td></td>`;
+                            }
+                            html += `</tr>`;
+                        }
+                        
+                        html += `</tbody></table></div>`;
+                    });
+                } else {
+                    html += `
+                    <div class="d-print-none alert alert-info small"><strong>Stile World Athletics:</strong> Griglia precompilata con Pettorali/Nomi. Il giudice spunta il giro al passaggio dell'atleta.</div>`;
+                    
+                    heats.forEach((h, i) => {
+                        if (h.length === 0) return;
+                        const sortedH = [...h].sort((a,b) => (a.pettorale || '999').localeCompare(b.pettorale || '999'));
+                        
+                        html += `<div class="mt-4" style="page-break-inside: avoid;">
+                            <h5>Contagiri - Serie ${i+1}</h5>
+                            <table class="table table-bordered table-sm text-center align-middle" style="font-size: 0.8rem;">
+                            <thead class="table-light"><tr><th width="8%">Pett.</th><th width="15%">Atleta</th>`;
+                        for(let lap=numLaps; lap>=2; lap--) {
+                            html += `<th>-${lap}</th>`;
+                        }
+                        html += `<th>ARRIVO</th></tr></thead><tbody>`;
+                        
+                        sortedH.forEach(a => {
+                            html += `<tr>
+                                <td class="fw-bold">${a.pettorale || ''}</td>
+                                <td class="text-start">${a.nominativo}<br><small class="text-muted">${a.societa || ''}</small></td>`;
+                            for(let lap=1; lap<=numLaps; lap++) {
+                                html += `<td></td>`;
+                            }
+                            html += `</tr>`;
+                        });
+                        
+                        for(let ex=0; ex<3; ex++) {
+                            html += `<tr><td></td><td></td>`;
+                            for(let lap=1; lap<=numLaps; lap++) {
+                                html += `<td></td>`;
+                            }
+                            html += `</tr>`;
+                        }
+                        
+                        html += `</tbody></table></div>`;
+                    });
+                }
+            }
+            
+            document.getElementById(`results-${index}`).innerHTML = html;
+            localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
+        }
+    
+        </script>
     <style>
         body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; }
         .sidebar { min-height: 100vh; background: #343a40; color: white; padding-top: 20px; }
@@ -532,9 +828,51 @@
                 return;
             }
 
-            // Same generation logic as before... (omitted full logic for brevity, will inject via build_dashboard.js)
-            html += `<div id="race-content-placeholder">Caricamento interfaccia gara...</div>`;
+            if (field) {
+                const lower = race.nome_gara.toLowerCase();
+                const vertical = lower.includes('alto') || lower.includes('asta');
+                html += `
+                <div class="card p-3 mb-4 d-print-none">
+                    <h5>Impostazioni Pedana (WA TR 25 ${vertical ? '& TR 26' : ''})</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Criterio Ordine di Partenza:</label>
+                        <select id="field-order-${index}" class="form-select">
+                            <option value="inverse">Ordine Inverso di Accredito (Consigliato Finali)</option>
+                            <option value="random">Ordine Casuale (Consigliato Qualificazioni)</option>
+                        </select>
+                    </div>`;
+                    
+                if (vertical) {
+                    html += `
+                    <div class="mb-3">
+                        <label class="form-label">Progressione Misure (TR 26.1):</label>
+                        <input type="text" id="progression-${index}" class="form-control" placeholder="Es. 1.80 1.85 1.90 1.93" onkeyup="validateProgression(this, '${race.nome_gara.replace(/'/g, "\\'")}')">
+                        <div id="progression-feedback-${index}" class="form-text">Inserisci le misure separate da spazio o virgola. Saranno stampate sul foglio gara.</div>
+                    </div>`;
+                }
+                    
+                html += `<button class="btn btn-primary" onclick="generateField(${index})">Genera Start List</button>
+                </div>
+                <div id="results-${index}"></div>
+                `;
+            } else {
+                html += `
+                <div class="card p-3 mb-4 d-print-none">
+                    <h5>Impostazioni Batterie/Serie (WA TR 20)</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">${middleDist ? 'Atleti Max per serie:' : 'Corsie attive (es. 1,2,3,4,5,6):'}</label>
+                            <input type="text" id="lanes-${index}" class="form-control" value="${middleDist ? '12' : '1,2,3,4,5,6'}">
+                            <small class="text-muted">${middleDist ? 'Massimo consigliato per mezzofondo: 12-15' : 'Elenca le corsie utilizzabili separate da virgola (es. 2,3,4,5,6,7,8 se la 1 ├¿ rotta)'}</small>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="generateTrack(${index}, ${middleDist})">Genera Serie (Zig-Zag)</button>
+                </div>
+                <div id="results-${index}"></div>
+                `;
+            }
             document.getElementById('main-content').innerHTML = html;
+
             
             // Re-render tracks if data exists
             const savedData = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
@@ -1135,6 +1473,302 @@ function timeToSeconds(t) {
             document.getElementById(`results-${index}`).innerHTML = html;
             localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
         }
-    </script>
+    function generateField(index) {
+            const race = currentMeeting.data[index];
+            const method = document.getElementById(`field-order-${index}`).value;
+            const lower = race.nome_gara.toLowerCase();
+            const isVertical = lower.includes('alto') || lower.includes('asta');
+            
+            let iscritti = [...race.iscritti].map(i => ({...i, val: parseFloat(i.accredito) || -1}));
+            
+            if (method === 'inverse') {
+                iscritti.sort((a, b) => a.val - b.val); // lowest to highest (highest jumps last)
+            } else {
+                iscritti.sort(() => Math.random() - 0.5);
+            }
+            
+            let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
+                <h4>Foglio Gara (Start List)</h4>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">­ƒû¿ Stampa</button>
+            </div>
+            <table class="table table-bordered table-sm" style="font-size: 0.85rem;">
+                <thead class="table-light">`;
+                
+            let progCols = 10;
+            if (isVertical) {
+                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Societ├á</th><th width="5%">SB</th>`;
+                const progInput = document.getElementById(`progression-${index}`);
+                let measuresArray = [];
+                if (progInput && progInput.value.trim() !== '') {
+                    measuresArray = progInput.value.replace(/,/g, ' ').split(/\s+/).filter(x=>x);
+                    progCols = Math.max(10, measuresArray.length + 2);
+                }
+                for(let i=0; i<progCols; i++) {
+                    const m = measuresArray[i] || '';
+                    html += `<th>${m}</th>`;
+                }
+                html += `<th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
+            } else {
+                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Societ├á</th><th width="5%">SB</th>
+                <th width="7%">1┬░</th><th width="7%">2┬░</th><th width="7%">3┬░</th><th width="7%">4┬░</th><th width="7%">5┬░</th><th width="7%">6┬░</th>
+                <th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
+            }
+            
+            iscritti.forEach((a, i) => {
+                const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
+                html += `<tr>
+                    <td><strong>${i+1}</strong></td>
+                    <td>${a.pettorale}</td>
+                    <td>${athleteName}</td>
+                    <td><small>${a.societa.substring(0,20)}</small></td>
+                    <td>${a.accredito}</td>`;
+                
+                if (isVertical) {
+                    for(let attempt=0; attempt<progCols; attempt++) {
+                        html += `<td></td>`;
+                    }
+                    html += `<td></td><td></td>`;
+                } else {
+                    for(let attempt=1; attempt<=3; attempt++) {
+                        html += `<td></td>`;
+                    }
+                    html += `<td class="table-light"></td>`; // Migliore 3 prove
+                    for(let attempt=4; attempt<=6; attempt++) {
+                        html += `<td></td>`;
+                    }
+                    html += `<td></td><td></td>`; // Misura finale e Pos
+                }
+                
+                html += `</tr>`;
+            });
+            html += `</tbody></table>`;
+            
+            document.getElementById(`results-${index}`).innerHTML = html;
+            localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
+        }
+
+        function generateTrack(index, isMiddle) {
+            const race = currentMeeting.data[index];
+            const lanesInputStr = document.getElementById(`lanes-${index}`).value;
+            
+            let activeLanes = [];
+            let maxLanes = 6;
+            
+            if (isMiddle) {
+                maxLanes = parseInt(lanesInputStr) || 12;
+            } else {
+                activeLanes = lanesInputStr.replace(/[^0-9,]/g, '').split(',').map(Number).filter(x => x > 0);
+                if (activeLanes.length === 0) activeLanes = [1,2,3,4,5,6];
+                maxLanes = activeLanes.length;
+            }
+            
+            let iscritti = [...race.iscritti].map(i => ({...i, val: timeToSeconds(i.accredito)}));
+            iscritti.sort((a, b) => a.val - b.val); // fastest first
+            
+            const total = iscritti.length;
+            const heatsCount = Math.ceil(total / maxLanes);
+            
+            const heats = Array.from({length: heatsCount}, () => []);
+            let dir = 1;
+            let current = 0;
+            
+            // Zig zag distribution
+            iscritti.forEach(a => {
+                heats[current].push(a);
+                if (dir === 1) {
+                    if (current < heatsCount - 1) current++;
+                    else dir = -1;
+                } else {
+                    if (current > 0) current--;
+                    else dir = 1;
+                }
+            });
+            
+            const raceData = { heats, isMiddle, maxLanes, activeLanes };
+            localStorage.setItem('race_data_' + currentMeeting.id + '_' + index, JSON.stringify(raceData));
+            
+            const badge = document.getElementById(`est-time-${index}`);
+            if (badge) {
+                const updatedTime = estimateDuration(race.nome_gara, total, isMiddle, heatsCount);
+                badge.textContent = `ÔÅ▒ Stima: ${Math.round(updatedTime)} min`;
+            }
+            
+            renderTrackHeats(index);
+        }
+
+        function moveAthlete(index, fromHeat, pettorale, toHeatSelect) {
+            const toHeat = parseInt(toHeatSelect.value);
+            if (fromHeat === toHeat) return;
+            
+            let raceData = JSON.parse(localStorage.getItem('race_data_' + currentMeeting.id + '_' + index));
+            let heats = raceData.heats;
+            
+            // Find athlete
+            let athleteIndex = heats[fromHeat].findIndex(a => a.pettorale === pettorale);
+            if (athleteIndex > -1) {
+                const athlete = heats[fromHeat].splice(athleteIndex, 1)[0];
+                heats[toHeat].push(athlete);
+                
+                localStorage.setItem('race_data_' + currentMeeting.id + '_' + index, JSON.stringify(raceData));
+                renderTrackHeats(index);
+            }
+        }
+
+        function renderTrackHeats(index) {
+            const race = currentMeeting.data[index];
+            const raceDataStr = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
+            if (!raceDataStr) return;
+            
+            const raceData = JSON.parse(raceDataStr);
+            const heats = raceData.heats;
+            const isMiddle = raceData.isMiddle;
+            const maxLanes = raceData.maxLanes;
+            const activeLanes = raceData.activeLanes || Array.from({length: maxLanes}, (_,i)=>i+1);
+            const heatsCount = heats.length;
+            
+            let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
+                <h4>Composizione Serie (${heatsCount} Serie Generate)</h4>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">­ƒû¿ Stampa</button>
+            </div>`;
+            
+            // Preferred lanes for standard sprint
+            const pref6 = [3, 4, 5, 6, 2, 1];
+            const pref8 = [4, 5, 3, 6, 2, 7, 1, 8];
+            const pref9 = [5, 6, 4, 7, 3, 8, 2, 9, 1];
+            
+            let basePref = pref6;
+            const maxActive = Math.max(...activeLanes);
+            if (maxActive > 6) basePref = pref8;
+            if (maxActive > 8) basePref = pref9;
+            
+            // Filter basePref by activeLanes
+            let pref = basePref.filter(l => activeLanes.includes(l));
+            activeLanes.forEach(l => {
+                if (!pref.includes(l)) pref.push(l); // fallback for unusual lanes
+            });
+            
+            heats.forEach((h, i) => {
+                html += `<div class="mt-4" style="page-break-inside: avoid;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5>Serie ${i+1}</h5>
+                    </div>
+                    <table class="table table-bordered table-sm">
+                    <thead class="table-light"><tr><th>${isMiddle ? 'Pos' : 'Corsia'}</th><th>Pett</th><th>Atleta</th><th>Societ├á</th><th>SB</th><th width="15%">Risultato</th><th width="5%">Pos</th><th class="d-print-none" width="10%">Sposta</th></tr></thead><tbody>`;
+                
+                if (!isMiddle) {
+                    // Assign lanes
+                    h.forEach((a, j) => {
+                        a.lane = pref[j] || '-';
+                    });
+                    h.sort((a,b) => (a.lane === '-' ? 99 : a.lane) - (b.lane === '-' ? 99 : b.lane));
+                } else {
+                    h.forEach((a, j) => {
+                        a.lane = j + 1;
+                    });
+                }
+                
+                h.forEach(a => {
+                    const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
+                    
+                    // Heat selector
+                    let selectHtml = `<select class="form-select form-select-sm" onchange="moveAthlete(${index}, ${i}, '${a.pettorale}', this)">`;
+                    for(let x=0; x<heatsCount; x++) {
+                        selectHtml += `<option value="${x}" ${x===i ? 'selected' : ''}>S ${x+1}</option>`;
+                    }
+                    selectHtml += `</select>`;
+                    
+                    html += `<tr><td><strong>${a.lane}</strong></td><td>${a.pettorale}</td><td>${athleteName}</td><td><small>${a.societa.substring(0,20)}</small></td><td>${a.accredito}</td><td></td><td></td><td class="d-print-none">${selectHtml}</td></tr>`;
+                });
+                
+                html += `</tbody></table></div>`;
+            });
+            
+            if (isMiddle) {
+                const numLaps = getLaps(race.nome_gara);
+                html += `<div style="page-break-before: always;" class="mt-5"></div>
+                <div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
+                    <h4 class="mt-4 text-primary">Foglio Contagiri (${race.nome_gara})</h4>
+                    <div>
+                        <a href="https://matteomircoli.it/contagiristatico/garav2.html" target="_blank" class="btn btn-outline-success btn-sm mt-4 me-2">ÔÅ▒ Contagiri Elettronico</a>
+                        <button class="btn btn-outline-primary btn-sm mt-4" onclick="window.print()">­ƒû¿ Stampa Foglio Cartaceo</button>
+                    </div>
+                </div>
+                `;
+                const lapStyleEl = document.getElementById('lap-style-' + index);
+                const lapStyle = lapStyleEl ? lapStyleEl.value : 'normal';
+
+                html += `<h4 class="mt-4 d-none d-print-block">Foglio Contagiri - ${race.nome_gara}</h4>`;
+
+                if (lapStyle === 'normal') {
+                    html += `
+                    <div class="d-print-none alert alert-info small"><strong>Stile Normale:</strong> Griglia vuota. Il giudice segna a mano il pettorale in base alla posizione (Pos).</div>`;
+                    
+                    heats.forEach((h, i) => {
+                        if (h.length === 0) return;
+                        html += `<div class="mt-4" style="page-break-inside: avoid;">
+                            <h5>Contagiri - Serie ${i+1}</h5>
+                            <table class="table table-bordered table-sm text-center" style="font-size: 0.8rem;">
+                            <thead class="table-light"><tr><th width="5%">Pos</th><th width="10%">Pettorale</th>`;
+                        for(let lap=numLaps; lap>=2; lap--) {
+                            html += `<th>-${lap}</th>`;
+                        }
+                        html += `<th>ARRIVO</th></tr></thead><tbody>`;
+                        
+                        const numRows = h.length + 3;
+                        for (let row = 1; row <= numRows; row++) {
+                            html += `<tr><td><strong>${row}┬░</strong></td><td></td>`;
+                            for(let lap=1; lap<=numLaps; lap++) {
+                                html += `<td></td>`;
+                            }
+                            html += `</tr>`;
+                        }
+                        
+                        html += `</tbody></table></div>`;
+                    });
+                } else {
+                    html += `
+                    <div class="d-print-none alert alert-info small"><strong>Stile World Athletics:</strong> Griglia precompilata con Pettorali/Nomi. Il giudice spunta il giro al passaggio dell'atleta.</div>`;
+                    
+                    heats.forEach((h, i) => {
+                        if (h.length === 0) return;
+                        const sortedH = [...h].sort((a,b) => (a.pettorale || '999').localeCompare(b.pettorale || '999'));
+                        
+                        html += `<div class="mt-4" style="page-break-inside: avoid;">
+                            <h5>Contagiri - Serie ${i+1}</h5>
+                            <table class="table table-bordered table-sm text-center align-middle" style="font-size: 0.8rem;">
+                            <thead class="table-light"><tr><th width="8%">Pett.</th><th width="15%">Atleta</th>`;
+                        for(let lap=numLaps; lap>=2; lap--) {
+                            html += `<th>-${lap}</th>`;
+                        }
+                        html += `<th>ARRIVO</th></tr></thead><tbody>`;
+                        
+                        sortedH.forEach(a => {
+                            html += `<tr>
+                                <td class="fw-bold">${a.pettorale || ''}</td>
+                                <td class="text-start">${a.nominativo}<br><small class="text-muted">${a.societa || ''}</small></td>`;
+                            for(let lap=1; lap<=numLaps; lap++) {
+                                html += `<td></td>`;
+                            }
+                            html += `</tr>`;
+                        });
+                        
+                        for(let ex=0; ex<3; ex++) {
+                            html += `<tr><td></td><td></td>`;
+                            for(let lap=1; lap<=numLaps; lap++) {
+                                html += `<td></td>`;
+                            }
+                            html += `</tr>`;
+                        }
+                        
+                        html += `</tbody></table></div>`;
+                    });
+                }
+            }
+            
+            document.getElementById(`results-${index}`).innerHTML = html;
+            localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
+        }
+    
+        </script>
 </body>
 </html>
