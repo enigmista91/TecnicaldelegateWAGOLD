@@ -1,8 +1,8 @@
-# 🥇 WA Gold - Technical Delegate Dashboard
+# 🏅 WA Gold - Technical Delegate Dashboard
 
 Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici di atletica leggera (livello World Athletics Gold) nella gestione delle competizioni, nell'applicazione del Regolamento Tecnico (TR 20 e TR 25) e nella creazione ottimizzata delle Start List.
 
-## ✨ Funzionalità Principali
+## 🚀 Funzionalità Principali
 
 1. **Estrazione Dati (Scraping)** 
    Estrazione automatica degli iscritti da qualsiasi pagina indice di un meeting FIDAL. Nessun inserimento manuale richiesto!
@@ -17,26 +17,33 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
    - Algoritmo per **Random Draw** (sorteggio casuale consigliato per le qualificazioni).
    - Algoritmo a **Ordine Inverso** (i migliori SB saltano/lanciano per ultimi, ideale per le Finali).
    - **Validazione Progressioni (TR 26.1)** per Alto e Asta in tempo reale (incrementi di min 2cm/5cm senza mai aumentare).
-5. **Calcolo del Timetable (Stima Durate)**
-   - Stima automatica del **Timetable** per ogni gara in base agli iscritti, alle batterie necessarie e alla specialità (Velocità, Mezzofondo, Lanci, ecc.).
-   - Ricalcolo dinamico della durata in base alle corsie attive o a modifiche manuali.
-   - Tabella riassuntiva nella Home Page con il calcolo del tempo totale di svolgimento del meeting.
+5. **Panoramica Avanzata e Timetable (Stima Durate)**
+   - Stima automatica del **Timetable** per ogni gara in base agli iscritti, alle batterie necessarie e alla specialità.
+   - **Inserimento Rapido Orari**: possibilità di inserire gli orari di gara direttamente dalla tabella riassuntiva nella Home Page (i dati si sincronizzeranno istantaneamente con la Call Room).
+   - Link rapidi cliccabili per accedere immediatamente alla configurazione di ogni gara.
 6. **Intervento Manuale e Persistenza**
     - Possibilità di spostare manualmente un atleta da una batteria all'altra tramite un pratico menu a tendina.
     - Tutte le serie generate e modificate vengono **salvate in cache (LocalStorage)** per non perdere i dati.
 7. **Materiale per Giudici e Segreteria (Stampe)**
     - Fogli Gara formattati per i salti in estensione e lanci (3+3 prove).
     - Fogli Gara dinamici per Alto/Asta con griglia basata sulle progressioni inserite.
-    - **Fogli Contagiri Cartacei** (800m-10000m) con due stili disponibili:
-      - *Stile Normale (FIDAL)*: griglia vuota per permettere ai giudici di segnare a penna i pettorali a ogni giro in base alla posizione.
-      - *Stile World Athletics*: griglia pre-compilata con pettorale e nome, il giudice "spunta" il riquadro al passaggio dell'atleta in quel giro.
+    - **Fogli Contagiri Cartacei** (800m-10000m) con due stili disponibili (Normale FIDAL e World Athletics pre-compilato).
     - Integrazione diretta (pulsante) con la **Web App Contagiri Elettronico**.
-    - Stampe pulite (i menu scompaiono automaticamente su carta).
-7. **Controllo Scarpe (Regola TR 5)**
+    - **Stampe Pulite e Ottimizzate**: menù e bottoni superflui (es. Sincronizza WISE, impostazioni Call Room) scompaiono automaticamente su carta, fornendo tabelle nitide e pronte per essere consegnate ai colleghi.
+8. **Controllo Scarpe (Regola TR 5)**
     - Strumento rapido integrato per consultare il database ufficiale *WA Shoe CertCheck*.
-    - Riepilogo sempre aggiornato degli spessori massimi ammessi in pista e pedana.
+    - Riepilogo sempre aggiornato degli spessori massimi ammessi in pista e pedana (incluse le regolamentazioni armonizzate).
 
-## 🚀 Come Utilizzare il Progetto
+## 💡 Nuove Funzionalità (Architettura 2.0 SPA)
+
+- **Database Locale Offline (IndexedDB)**: Mantieni in memoria lo storico di tutti i meeting scaricati senza dipendere da internet, passando da uno all'altro istantaneamente.
+- **Call Room Live Avanzata**: 
+  - Calcoli differenziati e simultanei in base alla specialità (es. le corse chiamano a -30', i lanci a -45', l'asta a -60').
+  - Cruscotto intelligente con semafori colorati che indica lo stato live di ogni gara.
+- **Sincronizzazione SIGMA/WISE**: Cliccando il pulsante apposito, la Dashboard interroga in background la piattaforma federale: se una gara ha già i risultati pubblicati, verrà segnata come completata e depennata dalla Call Room in tempo reale.
+- **Appunti TD, Radio & Contatti**: Una sezione speciale persistente dove salvare appunti, decisioni del delegato, organigramma giurie, piano comunicazioni radio e i contatti rapidi (Medico e Organizzatore).
+
+## 🛠️ Come Utilizzare il Progetto
 
 ### Primo Avvio (Installazione)
 1. Assicurati di avere [Node.js](https://nodejs.org/it) installato sul tuo computer.
@@ -48,27 +55,11 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
 3. Lo script aprirà Microsoft Edge in background per scaricare i dati aggiornati in pochi secondi.
 4. Al termine, si aprirà istantaneamente la **TD Dashboard** nel tuo browser.
 
-### Nuove Funzionalità (Architettura 2.0 SPA)
-- **Database Locale Offline (IndexedDB)**: Mantieni in memoria lo storico di tutti i meeting scaricati senza dipendere da internet, passando da uno all'altro istantaneamente.
-- **Call Room Live**: Inserisci l'orario effettivo di gara e l'app calcolerà per te automaticamente l'apertura della prima camera d'appello, della seconda, e l'ingresso in pista. Un cruscotto ti segnalerà con dei colori lo stato live di ogni gara.
-- **Sincronizzazione SIGMA/WISE**: Cliccando il pulsante apposito, la Dashboard interroga in background la piattaforma federale: se una gara ha già i risultati pubblicati, verrà segnata come completata e depennata dalla Call Room in tempo reale.
-- **Appunti TD & Radio**: Una sezione speciale persistente dove salvare appunti, decisioni del delegato, organigramma giurie e piano comunicazioni radio.
-
 ## Screenshots
 
-### 1. Panoramica Meeting
-![Overview](assets/overview.png)
+*(In aggiornamento)*
 
-### 2. Call Room Live & Sincronizzazione
-![Call Room](assets/callroom.png)
-
-### 3. Gestione Pista (WA TR 20)
-![Track Generation](assets/track.png)
-
-### 4. Gestione Concorsi (WA TR 25 & 26)
-![Field Generation](assets/field.png)
-
-## 🛠 Requisiti Tecnici
+## 💻 Requisiti Tecnici
 - Sistema Operativo Windows
 - Node.js installato
 - Browser Chromium/Microsoft Edge 
