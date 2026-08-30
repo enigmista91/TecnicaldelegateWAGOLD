@@ -422,7 +422,7 @@
             let html = `<div class="d-flex justify-content-between align-items-center">
                 <h2>${race.nome_gara}</h2>
                 <div>
-                    <span id="est-time-${index}" class="badge bg-info fs-6 me-2">⏱ Stima: ${Math.round(estTime)} min</span>
+                    <span id="est-time-${index}" class="badge bg-info fs-6 me-2">ÔÅ▒ Stima: ${Math.round(estTime)} min</span>
                     <div class="input-group input-group-sm d-inline-flex w-auto d-print-none">
                         <span class="input-group-text">Orario:</span>
                         <input type="time" class="form-control" id="sched-time-${index}" value="${schedTime}" onchange="saveRaceTime('${race.nome_gara}', this.value)">
@@ -463,8 +463,354 @@
         window.onload = init;
     
 // ====== LEGACY FUNCTIONS ======
+function timeToSeconds(t) {
+            if (!t) return 999999;
+            t = t.trim();
+            if (t.includes(':')) {
+                const parts = t.split(':');
+                return parseInt(parts[0]) * 60 + parseFloat(parts[1]);
+            }
+            return parseFloat(t) || 999999;
+        }
+
+        function isFieldEvent(name) {
+            const lower = name.toLowerCase();
+            return ['salto', 'lungo', 'alto', 'asta', 'triplo', 'peso', 'disco', 'martello', 'giavellotto', 'vortex'].some(k => lower.includes(k));
+        }
+        
+        function isMiddleDistance(name) {
+            const lower = name.toLowerCase();
+            return ['600', '800', '1000', '1200', '1500', '2000', '3000', '5000', '10000', 'siepi', 'marcia'].some(k => lower.includes(k));
+        }
+
+        function validateProgression(inputElement, raceName) {
+            const feedback = inputElement.nextElementSibling;
+            const str = inputElement.value.replace(/,/g, ' ').trim();
+            if (!str) {
+                feedback.innerHTML = "Inserisci le misure separate da spazio o virgola. Saranno stampate sul foglio gara.";
+                feedback.className = "form-text text-muted";
+                inputElement.classList.remove('is-invalid', 'is-valid');
+                return;
+            }
+            
+            const measures = str.split(/\s+/).map(x => parseFloat(x));
+            if (measures.some(isNaN)) {
+                feedback.innerHTML = "Formato non valido. Inserisci solo numeri (es. 1.80 1.85).";
+                feedback.className = "form-text text-danger";
+                inputElement.classList.add('is-invalid');
+                inputElement.classList.remove('is-valid');
+                return;
+            }
+            
+            // Check strict monotonicity
+            for(let i = 1; i < measures.length; i++) {
+                if (measures[i] <= measures[i-1]) {
+                    feedback.innerHTML = "Le misure devono essere crescenti!";
+                    feedback.className = "form-text text-danger";
+                    inputElement.classList.add('is-invalid');
+                    inputElement.classList.remove('is-valid');
+                    return;
+                }
+            }
+            
+            const isPoleVault = raceName.toLowerCase().includes('asta');
+            const minIncrement = isPoleVault ? 5 : 2; // in cm
+            
+            let valid = true;
+            let errorMsg = "";
+            let lastInc = 999;
+            
+            for (let i = 1; i < measures.length; i++) {
+                const diffCm = Math.round((measures[i] - measures[i-1]) * 100);
+                if (diffCm < minIncrement) {
+                    valid = false;
+                    errorMsg = `Errore TR 26.1: Incremento di ${diffCm}cm tra ${measures[i-1]} e ${measures[i]}. Minimo consentito: ${minIncrement}cm.`;
+                    break;
+                }
+                if (diffCm > lastInc) {
+                    valid = false;
+                    errorMsg = `Errore TR 26.1: L'incremento non pu├▓ aumentare. Precedente: ${lastInc}cm, Nuovo: ${diffCm}cm.`;
+                    break;
+                }
+                lastInc = diffCm;
+            }
+            
+            if (!valid) {
+                feedback.innerHTML = errorMsg;
+                feedback.className = "form-text text-danger";
+                inputElement.classList.add('is-invalid');
+                inputElement.classList.remove('is-valid');
+            } else {
+                feedback.innerHTML = "Progressione a norma WA TR 26.1 Ô£à";
+                feedback.className = "form-text text-success";
+                inputElement.classList.remove('is-invalid');
+                inputElement.classList.add('is-valid');
+            }
+        }
+
+        function getLaps(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('600')) return 2;
+            if (lower.includes('800')) return 2;
+            if (lower.includes('1000')) return 3;
+            if (lower.includes('1200')) return 3;
+            if (lower.includes('1500')) return 4;
+            if (lower.includes('2000')) return 5;
+            if (lower.includes('3000')) return 8;
+            if (lower.includes('siepi')) return 8;
+            if (lower.includes('5000')) return 13;
+            if (lower.includes('10000')) return 25;
+            if (lower.includes('marcia 5')) return 13;
+            if (lower.includes('marcia 10')) return 25;
+            return 15;
+        }
+
+        function estimateDuration(nomeGara, iscrittiCount, isMiddle, heatsCount) {
+            const lower = nomeGara.toLowerCase();
+            if (isFieldEvent(nomeGara)) {
+                if (lower.includes('asta')) return iscrittiCount * 3 + 15;
+                if (lower.includes('alto')) return iscrittiCount * 2 + 10;
+                return Math.ceil(iscrittiCount * 1.5) + 15;
+            }
+            
+            let assumedHeats = heatsCount;
+            if (!assumedHeats) {
+                assumedHeats = Math.ceil(iscrittiCount / (isMiddle ? 12 : 6));
+            }
+            
+            if (lower.includes('10000') || lower.includes('marcia 10')) return assumedHeats * 40;
+            if (lower.includes('5000') || lower.includes('marcia 5')) return assumedHeats * 22;
+            if (lower.includes('3000') || lower.includes('siepi')) return assumedHeats * 15;
+            if (lower.includes('1500') || lower.includes('miglio')) return assumedHeats * 8;
+            if (lower.includes('800') || lower.includes('1000')) return assumedHeats * 6;
+            if (lower.includes('400')) return assumedHeats * 5;
+            return assumedHeats * 4; // 100, 200, ostacoli, staffette
+        }
+
+        function initSidebar() {
+            const list = document.getElementById('race-list');
+            const groups = { 'Corse': [], 'Salti': [], 'Lanci': [] };
+            
+            data.forEach((race, index) => {
+                const lower = race.nome_gara.toLowerCase();
+                let cat = 'Corse';
+                if (['salto', 'lungo', 'alto', 'asta', 'triplo'].some(k => lower.includes(k))) cat = 'Salti';
+                else if (['peso', 'disco', 'martello', 'giavellotto', 'vortex'].some(k => lower.includes(k))) cat = 'Lanci';
+                groups[cat].push({race, index});
+            });
+            
+            for (const [groupName, races] of Object.entries(groups)) {
+                if (races.length === 0) continue;
+                
+                const header = document.createElement('h6');
+                header.className = 'mt-3 mb-2 text-primary fw-bold border-bottom pb-1';
+                header.textContent = groupName;
+                list.appendChild(header);
+                
+                races.forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.className = 'nav-link text-start mb-1 btn btn-sm w-100 text-truncate';
+                    btn.style.fontSize = '0.85rem';
+                    btn.textContent = item.race.nome_gara;
+                    btn.onclick = () => showRace(item.index, btn);
+                    list.appendChild(btn);
+                });
+            }
+            
+            const toolsHeader = document.createElement('h6');
+            toolsHeader.className = 'mt-4 mb-2 text-primary fw-bold border-bottom pb-1';
+            toolsHeader.textContent = 'Strumenti TD';
+            list.appendChild(toolsHeader);
+            
+            const shoeBtn = document.createElement('button');
+            shoeBtn.className = 'nav-link text-start mb-1 btn btn-sm w-100 text-truncate text-success fw-bold';
+            shoeBtn.innerHTML = '­ƒæƒ Controllo Scarpe';
+            shoeBtn.onclick = () => showShoeControl(shoeBtn);
+            list.appendChild(shoeBtn);
+        }
+
+        function showOverview() {
+            document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+            document.querySelector('.nav-link').classList.add('active'); // The first one
+            
+            let total = 0;
+            let anomaliesCount = 0;
+            let totalDurationMins = 0;
+            let html = `<h2>Panoramica Generale Meeting</h2><hr>`;
+            
+            let table = `<table class="table table-striped mt-4">
+                <thead class="table-dark"><tr><th>Gara</th><th>Iscritti</th><th>Tipo</th><th>Stima Durata</th><th>Anomalie (No SB)</th></tr></thead><tbody>`;
+                
+            data.forEach(r => {
+                total += r.numero_iscritti;
+                const field = isFieldEvent(r.nome_gara);
+                const isMiddle = isMiddleDistance(r.nome_gara);
+                const duration = estimateDuration(r.nome_gara, r.numero_iscritti, isMiddle, null);
+                totalDurationMins += duration;
+                const anomalies = r.iscritti.filter(i => !i.accredito.trim()).length;
+                if (anomalies > 0) anomaliesCount++;
+                
+                table += `<tr>
+                    <td>${r.nome_gara}</td>
+                    <td>${r.numero_iscritti}</td>
+                    <td>${field ? 'Concorsi' : 'Corse'}</td>
+                    <td>${Math.round(duration)} min</td>
+                    <td class="${anomalies > 0 ? 'anomaly' : ''}">${anomalies}</td>
+                </tr>`;
+            });
+            table += `</tbody></table>`;
+            
+            const hours = Math.floor(totalDurationMins / 60);
+            const mins = Math.round(totalDurationMins % 60);
+            
+            html += `<div class="row mb-4">
+                <div class="col-md-3"><div class="card bg-primary text-white"><div class="card-body"><h4>Totale Gare</h4><h2>${data.length}</h2></div></div></div>
+                <div class="col-md-3"><div class="card bg-success text-white"><div class="card-body"><h4>Totale Atleti</h4><h2>${total}</h2></div></div></div>
+                <div class="col-md-3"><div class="card bg-info text-white"><div class="card-body"><h4>Stima Durata Tot.</h4><h2>${hours}h ${mins}m</h2></div></div></div>
+                <div class="col-md-3"><div class="card ${anomaliesCount>0?'bg-danger':'bg-secondary'} text-white"><div class="card-body"><h4>Gare con Anomalie</h4><h2>${anomaliesCount}</h2></div></div></div>
+            </div>`;
+            
+            if (anomaliesCount > 0) {
+                html += `<div class="alert alert-warning"><strong>Attenzione:</strong> Alcune gare hanno atleti senza accredito. Verranno considerati "No Time / No Mark" in fase di sorteggio/composizione.</div>`;
+            }
+            
+            html += table;
+            document.getElementById('main-content').innerHTML = html;
+        }
+
+        function showShoeControl(btn) {
+            document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+            
+            let html = `
+            <h2>­ƒæƒ Controllo Scarpe (Shoe Compliance TR 5)</h2>
+            <hr>
+            <div class="row">
+                <div class="col-md-7">
+                    <div class="card mb-4 border-success shadow-sm">
+                        <div class="card-header bg-success text-white fw-bold">
+                            Portale Ufficiale World Athletics
+                        </div>
+                        <div class="card-body">
+                            <p>Utilizza il database ufficiale di World Athletics per verificare istantaneamente se il modello di scarpa utilizzato dall'atleta ├¿ approvato per la competizione.</p>
+                            <a href="https://certcheck.worldathletics.org/" target="_blank" class="btn btn-lg btn-success w-100 mb-3 fw-bold shadow">
+                                ­ƒöì Apri WA Shoe CertCheck
+                            </a>
+                            <p class="text-muted small mb-0">Il portale WA si aprir├á in una nuova scheda sicura del browser, permettendoti di effettuare la verifica in tempo reale direttamente dal campo o in Call Room.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="card border-info shadow-sm">
+                        <div class="card-header bg-info text-white fw-bold">
+                            Regole Spessori (Sintesi TR 5)
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush small">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Gare su Pista (tutte)</strong>
+                                    <span class="badge bg-primary rounded-pill">Max 20 mm</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Salto Triplo</strong>
+                                    <span class="badge bg-primary rounded-pill">Max 25 mm</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Altri Concorsi (Lungo, Alto, Asta)</strong>
+                                    <span class="badge bg-primary rounded-pill">Max 20 mm</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Strada e Cross</strong>
+                                    <span class="badge bg-primary rounded-pill">Max 40 mm</span>
+                                </li>
+                            </ul>
+                            <div class="p-2 bg-light border-top">
+                                <small class="text-muted"><i class="fw-bold text-warning">Nota:</i> Dal 1 Novembre 2024 ├¿ in vigore la regola armonizzata a 20mm per tutte le gare su pista (velocit├á e mezzofondo).</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+            
+            document.getElementById('main-content').innerHTML = html;
+        }
+
+        function showRace(index, btn) {
+            document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const race = currentMeeting.data[index];
+            const field = isFieldEvent(race.nome_gara);
+            const middleDist = isMiddleDistance(race.nome_gara);
+            
+            const estTime = estimateDuration(race.nome_gara, race.numero_iscritti, middleDist, null);
+            
+            let html = `<div class="d-flex justify-content-between align-items-center">
+                <h2>${race.nome_gara}</h2>
+                <div id="est-time-${index}" class="badge bg-info fs-6">ÔÅ▒ Stima: ${Math.round(estTime)} min</div>
+            </div><hr>`;
+            
+            if (race.numero_iscritti === 0) {
+                html += `<div class="alert alert-info">Nessun iscritto a questa gara.</div>`;
+                document.getElementById('main-content').innerHTML = html;
+                return;
+            }
+
+            if (field) {
+                const lower = race.nome_gara.toLowerCase();
+                const vertical = lower.includes('alto') || lower.includes('asta');
+                html += `
+                <div class="card p-3 mb-4 d-print-none">
+                    <h5>Impostazioni Pedana (WA TR 25 ${vertical ? '& TR 26' : ''})</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Criterio Ordine di Partenza:</label>
+                        <select id="field-order-${index}" class="form-select">
+                            <option value="inverse">Ordine Inverso di Accredito (Consigliato Finali)</option>
+                            <option value="random">Ordine Casuale (Consigliato Qualificazioni)</option>
+                        </select>
+                    </div>`;
+                    
+                if (vertical) {
+                    html += `
+                    <div class="mb-3">
+                        <label class="form-label">Progressione Misure (TR 26.1):</label>
+                        <input type="text" id="progression-${index}" class="form-control" placeholder="Es. 1.80 1.85 1.90 1.93" onkeyup="validateProgression(this, '${race.nome_gara.replace(/'/g, "\\'")}')">
+                        <div id="progression-feedback-${index}" class="form-text">Inserisci le misure separate da spazio o virgola. Saranno stampate sul foglio gara.</div>
+                    </div>`;
+                }
+                    
+                html += `<button class="btn btn-primary" onclick="generateField(${index})">Genera Start List</button>
+                </div>
+                <div id="results-${index}"></div>
+                `;
+            } else {
+                html += `
+                <div class="card p-3 mb-4 d-print-none">
+                    <h5>Impostazioni Batterie/Serie (WA TR 20)</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">${middleDist ? 'Atleti Max per serie:' : 'Corsie attive (es. 1,2,3,4,5,6):'}</label>
+                            <input type="text" id="lanes-${index}" class="form-control" value="${middleDist ? '12' : '1,2,3,4,5,6'}">
+                            <small class="text-muted">${middleDist ? 'Massimo consigliato per mezzofondo: 12-15' : 'Elenca le corsie utilizzabili separate da virgola (es. 2,3,4,5,6,7,8 se la 1 ├¿ rotta)'}</small>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="generateTrack(${index}, ${middleDist})">Genera Serie (Zig-Zag)</button>
+                </div>
+                <div id="results-${index}"></div>
+                `;
+            }
+            
+            document.getElementById('main-content').innerHTML = html;
+            
+            const cached = localStorage.getItem('race_' + currentMeeting.id + '_' + index);
+            if (cached) {
+                document.getElementById(`results-${index}`).innerHTML = cached + `<div class="alert alert-secondary mt-2 small d-print-none">­ƒÆ¥ Risultati recuperati dalla memoria locale. Se modifichi le impostazioni, clicca nuovamente su "Genera" per sovrascrivere.</div>`;
+            }
+        }
+
         function generateField(index) {
-            const race = data[index];
+            const race = currentMeeting.data[index];
             const method = document.getElementById(`field-order-${index}`).value;
             const lower = race.nome_gara.toLowerCase();
             const isVertical = lower.includes('alto') || lower.includes('asta');
@@ -479,14 +825,14 @@
             
             let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
                 <h4>Foglio Gara (Start List)</h4>
-                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨 Stampa</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">­ƒû¿ Stampa</button>
             </div>
             <table class="table table-bordered table-sm" style="font-size: 0.85rem;">
                 <thead class="table-light">`;
                 
             let progCols = 10;
             if (isVertical) {
-                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Società</th><th width="5%">SB</th>`;
+                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Societ├á</th><th width="5%">SB</th>`;
                 const progInput = document.getElementById(`progression-${index}`);
                 let measuresArray = [];
                 if (progInput && progInput.value.trim() !== '') {
@@ -499,8 +845,8 @@
                 }
                 html += `<th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
             } else {
-                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Società</th><th width="5%">SB</th>
-                <th width="7%">1°</th><th width="7%">2°</th><th width="7%">3°</th><th width="7%">4°</th><th width="7%">5°</th><th width="7%">6°</th>
+                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Societ├á</th><th width="5%">SB</th>
+                <th width="7%">1┬░</th><th width="7%">2┬░</th><th width="7%">3┬░</th><th width="7%">4┬░</th><th width="7%">5┬░</th><th width="7%">6┬░</th>
                 <th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
             }
             
@@ -538,7 +884,7 @@
         }
 
         function generateTrack(index, isMiddle) {
-            const race = data[index];
+            const race = currentMeeting.data[index];
             const lanesInputStr = document.getElementById(`lanes-${index}`).value;
             
             let activeLanes = [];
@@ -580,7 +926,7 @@
             const badge = document.getElementById(`est-time-${index}`);
             if (badge) {
                 const updatedTime = estimateDuration(race.nome_gara, total, isMiddle, heatsCount);
-                badge.textContent = `⏱ Stima: ${Math.round(updatedTime)} min`;
+                badge.textContent = `ÔÅ▒ Stima: ${Math.round(updatedTime)} min`;
             }
             
             renderTrackHeats(index);
@@ -605,7 +951,162 @@
         }
 
         function renderTrackHeats(index) {
-            const race = data[index];
+            const race = currentMeeting.data[index];
+            const raceDataStr = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
+            if (!raceDataStr) return;
+            
+            const raceData = JSON.parse(raceDataStr);
+            const heats = raceData.heats;
+            const isMiddle = raceData.isMiddle;
+            const maxLanes = raceData.maxLanes;
+            const activeLanes = raceData.activeLanes || Array.from({length: maxLanes}, (_,i)=>i+1);
+            const heatsCount = heats.length;
+            
+            let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
+                <h4>Composizione Serie (${heatsCount} Serie Generate)</h4>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">­ƒû¿ Stampa</button>
+            </div>`;
+            
+            // Preferred lanes for standard sprint
+            const pref6 = [3, 4, 5, 6, 2, 1];
+            const pref8 = [4, 5, 3, 6, 2, 7, 1, 8];
+            const pref9 = [5, 6, 4, 7, 3, 8, 2, 9, 1];
+            
+            let basePref = pref6;
+            const maxActive = Math.max(...activeLanes);
+            if (maxActive > 6) basePref = pref8;
+            if (maxActive > 8) basePref = pref9;
+            
+            // Filter basePref by activeLanes
+            let pref = basePref.filter(l => activeLanes.includes(l));
+            activeLanes.forEach(l => {
+                if (!pref.includes(l)) pref.push(l); // fallback for unusual lanes
+            });
+            
+            heats.forEach((h, i) => {
+                html += `<div class="mt-4" style="page-break-inside: avoid;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5>Serie ${i+1}</h5>
+                    </div>
+                    <table class="table table-bordered table-sm">
+                    <thead class="table-light"><tr><th>${isMiddle ? 'Pos' : 'Corsia'}</th><th>Pett</th><th>Atleta</th><th>Societ├á</th><th>SB</th><th width="15%">Risultato</th><th width="5%">Pos</th><th class="d-print-none" width="10%">Sposta</th></tr></thead><tbody>`;
+                
+                if (!isMiddle) {
+                    // Assign lanes
+                    h.forEach((a, j) => {
+                        a.lane = pref[j] || '-';
+                    });
+                    h.sort((a,b) => (a.lane === '-' ? 99 : a.lane) - (b.lane === '-' ? 99 : b.lane));
+                } else {
+                    h.forEach((a, j) => {
+                        a.lane = j + 1;
+                    });
+                }
+                
+                h.forEach(a => {
+                    const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
+                    
+                    // Heat selector
+                    let selectHtml = `<select class="form-select form-select-sm" onchange="moveAthlete(${index}, ${i}, '${a.pettorale}', this)">`;
+                    for(let x=0; x<heatsCount; x++) {
+                        selectHtml += `<option value="${x}" ${x===i ? 'selected' : ''}>S ${x+1}</option>`;
+                    }
+                    selectHtml += `</select>`;
+                    
+                    html += `<tr><td><strong>${a.lane}</strong></td><td>${a.pettorale}</td><td>${athleteName}</td><td><small>${a.societa.substring(0,20)}</small></td><td>${a.accredito}</td><td></td><td></td><td class="d-print-none">${selectHtml}</td></tr>`;
+                });
+                
+                html += `</tbody></table></div>`;
+            });
+            
+            if (isMiddle) {
+                const numLaps = getLaps(race.nome_gara);
+                html += `<div style="page-break-before: always;" class="mt-5"></div>
+                <div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
+                    <h4 class="mt-4 text-primary">Foglio Contagiri (${race.nome_gara})</h4>
+                    <div>
+                        <a href="https://matteomircoli.it/contagiristatico/garav2.html" target="_blank" class="btn btn-outline-success btn-sm mt-4 me-2">ÔÅ▒ Contagiri Elettronico</a>
+                        <button class="btn btn-outline-primary btn-sm mt-4" onclick="window.print()">­ƒû¿ Stampa Foglio Cartaceo</button>
+                    </div>
+                </div>
+                `;
+                const lapStyleEl = document.getElementById('lap-style-' + index);
+                const lapStyle = lapStyleEl ? lapStyleEl.value : 'normal';
+
+                html += `<h4 class="mt-4 d-none d-print-block">Foglio Contagiri - ${race.nome_gara}</h4>`;
+
+                if (lapStyle === 'normal') {
+                    html += `
+                    <div class="d-print-none alert alert-info small"><strong>Stile Normale:</strong> Griglia vuota. Il giudice segna a mano il pettorale in base alla posizione (Pos).</div>`;
+                    
+                    heats.forEach((h, i) => {
+                        if (h.length === 0) return;
+                        html += `<div class="mt-4" style="page-break-inside: avoid;">
+                            <h5>Contagiri - Serie ${i+1}</h5>
+                            <table class="table table-bordered table-sm text-center" style="font-size: 0.8rem;">
+                            <thead class="table-light"><tr><th width="5%">Pos</th><th width="10%">Pettorale</th>`;
+                        for(let lap=numLaps; lap>=2; lap--) {
+                            html += `<th>-${lap}</th>`;
+                        }
+                        html += `<th>ARRIVO</th></tr></thead><tbody>`;
+                        
+                        const numRows = h.length + 3;
+                        for (let row = 1; row <= numRows; row++) {
+                            html += `<tr><td><strong>${row}┬░</strong></td><td></td>`;
+                            for(let lap=1; lap<=numLaps; lap++) {
+                                html += `<td></td>`;
+                            }
+                            html += `</tr>`;
+                        }
+                        
+                        html += `</tbody></table></div>`;
+                    });
+                } else {
+                    html += `
+                    <div class="d-print-none alert alert-info small"><strong>Stile World Athletics:</strong> Griglia precompilata con Pettorali/Nomi. Il giudice spunta il giro al passaggio dell'atleta.</div>`;
+                    
+                    heats.forEach((h, i) => {
+                        if (h.length === 0) return;
+                        const sortedH = [...h].sort((a,b) => (a.pettorale || '999').localeCompare(b.pettorale || '999'));
+                        
+                        html += `<div class="mt-4" style="page-break-inside: avoid;">
+                            <h5>Contagiri - Serie ${i+1}</h5>
+                            <table class="table table-bordered table-sm text-center align-middle" style="font-size: 0.8rem;">
+                            <thead class="table-light"><tr><th width="8%">Pett.</th><th width="15%">Atleta</th>`;
+                        for(let lap=numLaps; lap>=2; lap--) {
+                            html += `<th>-${lap}</th>`;
+                        }
+                        html += `<th>ARRIVO</th></tr></thead><tbody>`;
+                        
+                        sortedH.forEach(a => {
+                            html += `<tr>
+                                <td class="fw-bold">${a.pettorale || ''}</td>
+                                <td class="text-start">${a.nominativo}<br><small class="text-muted">${a.societa || ''}</small></td>`;
+                            for(let lap=1; lap<=numLaps; lap++) {
+                                html += `<td></td>`;
+                            }
+                            html += `</tr>`;
+                        });
+                        
+                        for(let ex=0; ex<3; ex++) {
+                            html += `<tr><td></td><td></td>`;
+                            for(let lap=1; lap<=numLaps; lap++) {
+                                html += `<td></td>`;
+                            }
+                            html += `</tr>`;
+                        }
+                        
+                        html += `</tbody></table></div>`;
+                    });
+                }
+            }
+            
+            document.getElementById(`results-${index}`).innerHTML = html;
+            localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
+        }
+
+        function renderTrackHeats(index) {
+            const race = currentMeeting.data[index];
             const raceDataStr = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
             if (!raceDataStr) return;
             
