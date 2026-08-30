@@ -313,11 +313,21 @@
         }
         .anomaly { background-color: #ffeeba !important; font-weight: bold; }
         
-        @media print {
-            .table th, .table td, .table-dark th { 
-                color: black !important; 
-                border-color: #dee2e6 !important;
+                @media print {
+            body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
+            .table-dark th { 
+                background-color: #212529 !important; 
+                color: white !important; 
+            }
+            .table-success { background-color: #d1e7dd !important; }
+            .table-warning { background-color: #fff3cd !important; }
+            .table-danger { background-color: #f8d7da !important; }
+            .table-info { background-color: #cff4fc !important; }
+            .badge { border: 1px solid black; }
+        }
             .badge { border: 1px solid black; color: black !important; }
         }
     </style>
