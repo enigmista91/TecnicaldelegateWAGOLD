@@ -524,7 +524,7 @@
             
             let table = `<table class="table table-striped mt-4 align-middle"><thead class="table-dark"><tr><th>Orario (Call Room)</th><th>Gara</th><th>Iscritti</th><th>Tipo</th><th>Stima Durata</th><th>Anomalie (No SB)</th></tr></thead><tbody>`;
             
-            currentMeeting.data.forEach(r => {
+            currentMeeting.data.forEach((r, index) => {
                 total += r.numero_iscritti;
                 const field = isFieldEvent(r.nome_gara);
                 const isMiddle = isMiddleDistance(r.nome_gara);
@@ -537,7 +537,7 @@
                 
                 table += `<tr>
                     <td style="width: 120px;"><input type="time" class="form-control form-control-sm" value="${schedTime}" onchange="saveRaceTime('${r.nome_gara.replace(/'/g, "\'")}', this.value)"></td>
-                    <td class="fw-bold">${r.nome_gara}</td><td>${r.numero_iscritti}</td><td>${field ? 'Concorsi' : 'Corse'}</td>
+                    <td class="fw-bold"><a href="#" onclick="showRace(index, null); return false;" class="text-decoration-none">${r.nome_gara}</a></td><td>${r.numero_iscritti}</td><td>${field ? 'Concorsi' : 'Corse'}</td>
                     <td>${Math.round(duration)} min</td><td class="${anomalies > 0 ? 'text-danger fw-bold' : ''}">${anomalies}</td>
                 </tr>`;
             });
