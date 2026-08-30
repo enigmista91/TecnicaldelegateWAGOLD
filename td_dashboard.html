@@ -569,7 +569,7 @@
                 
                 table += `<tr>
                     <td style="width: 120px;">
-                        <input type="time" class="form-control form-control-sm d-print-none" value="${schedTime}" onchange="saveRaceTime('${r.nome_gara.replace(/'/g, "\'")}', this.value)" ${isComp ? 'disabled' : ''}>
+                        <input type="time" class="form-control form-control-sm d-print-none" value="${schedTime}" onchange="saveRaceTime(\`${r.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this)">
                         <span class="d-none d-print-inline fw-bold fs-5">${schedTime || '--:--'}</span>
                     </td>
                     <td class="fw-bold">
@@ -868,7 +868,7 @@
                     <span id="est-time-${index}" class="badge bg-info fs-6 me-2">ÔÅ▒ Stima: ${Math.round(estTime)} min</span>
                     <div class="input-group input-group-sm d-inline-flex w-auto d-print-none">
                         <span class="input-group-text">Orario:</span>
-                        <input type="time" class="form-control" id="sched-time-${index}" value="${schedTime}" onchange="saveRaceTime(\'${race.nome_gara.replace(/\'/g, "&apos;")}\', this.value, this)">
+                        <input type="time" class="form-control" id="sched-time-${index}" value="${schedTime}" onchange="saveRaceTime(\`${race.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this)">
                     </div>
                 </div>
             </div><hr>`;
@@ -932,7 +932,8 @@
             }
         }
 
-                window.saveRaceTime = async function(name, timeVal, inputElem) {
+                        window.saveRaceTime = async function(name, timeVal, inputElem) {
+            name = name.replace(/&apos;/g, "'");
             const r = await db.races.get(currentMeeting.id + '_' + name);
             if(r) {
                 r.scheduledTime = timeVal;
