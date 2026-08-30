@@ -302,18 +302,23 @@
         }
     
         </script>
-    <style>
-        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; }
-        .sidebar { min-height: 100vh; background: #343a40; color: white; padding-top: 20px; }
-        .nav-link { color: #c2c7d0; cursor: pointer; transition: 0.2s; }
-        .nav-link:hover, .nav-link.active { color: white; background: #495057; border-radius: 5px; }
-        .main-content { padding: 30px; background: white; min-height: 100vh; box-shadow: -5px 0 15px rgba(0,0,0,0.05); }
-        .page-break { page-break-before: always; }
+        <style>
+        .race-btn {
+            border-left: 3px solid transparent;
+        }
+        .race-btn.active {
+            border-left-color: #0d6efd;
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
         .anomaly { background-color: #ffeeba !important; font-weight: bold; }
+        
         @media print {
-            .d-print-none { display: none !important; }
-            .sidebar { display: none !important; }
-            .main-content { padding: 0 !important; box-shadow: none !important; width: 100% !important; }
+            .table th, .table td, .table-dark th { 
+                color: black !important; 
+                border-color: #dee2e6 !important;
+            }
+            .badge { border: 1px solid black; color: black !important; }
         }
     </style>
 </head>
@@ -332,6 +337,7 @@
                     <button class="nav-link w-100 text-start btn btn-sm mb-1 active" onclick="showOverview()">📊 Panoramica Meeting</button>
                     <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showCallRoom()">⏱ Call Room Live</button>
                     <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showNotes()">📝 Appunti TD & Radio</button>
+                    <button class="nav-link w-100 text-start btn btn-sm mb-1 text-primary fw-bold" onclick="syncWise()">🔄 Sincronizza WISE</button>
                     <button class="nav-link w-100 text-start btn btn-sm mb-1 text-success fw-bold" onclick="showShoeControl()">👟 Controllo Scarpe</button>
                 </div>
                 
@@ -448,7 +454,7 @@
             if (!sel.value) return;
             
             currentMeeting = await db.meetings.get(sel.value);
-            buildSidebar();
+            await await buildSidebar();
             showOverview();
         }
 
@@ -516,7 +522,7 @@
         }
 
         // Views
-                async function showOverview() {
+                        async function showOverview() {
             clearActiveNav();
             document.querySelectorAll('#nav-general .nav-link')[0].classList.add('active');
             
@@ -524,9 +530,13 @@
             
             const racesDb = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
             const timeMap = {};
-            racesDb.forEach(r => timeMap[r.name] = r.scheduledTime || '');
+            const compMap = {};
+            racesDb.forEach(r => {
+                timeMap[r.name] = r.scheduledTime || '';
+                compMap[r.name] = r.isCompleted;
+            });
             
-            let table = `<table class="table table-striped mt-4 align-middle"><thead class="table-dark"><tr><th>Orario (Call Room)</th><th>Gara</th><th>Iscritti</th><th>Tipo</th><th>Stima Durata</th><th>Anomalie (No SB)</th></tr></thead><tbody>`;
+            let table = `<table class="table table-striped mt-4 align-middle"><thead class="table-dark"><tr><th>Orario (Call Room)</th><th>Gara</th><th>Iscritti</th><th>Tipo</th><th>Stima Durata</th><th>Stato</th></tr></thead><tbody>`;
             
             currentMeeting.data.forEach((r, index) => {
                 total += r.numero_iscritti;
@@ -538,11 +548,26 @@
                 if (anomalies > 0) anomaliesCount++;
                 
                 const schedTime = timeMap[r.nome_gara] || '';
+                const isComp = compMap[r.nome_gara];
+                
+                let statoHtml = `<span class="${anomalies > 0 ? 'text-danger fw-bold' : ''}">${anomalies} anom.</span>`;
+                if (isComp && currentMeeting.resultsUrl) {
+                    statoHtml = `<a href="${currentMeeting.resultsUrl}" target="_blank" class="badge bg-success text-decoration-none">✅ Risultati</a>`;
+                } else if (isComp) {
+                    statoHtml = `<span class="badge bg-success">✅ Conclusa</span>`;
+                }
                 
                 table += `<tr>
-                    <td style="width: 120px;"><input type="time" class="form-control form-control-sm" value="${schedTime}" onchange="saveRaceTime('${r.nome_gara.replace(/'/g, "\'")}', this.value)"></td>
-                    <td class="fw-bold"><a href="#" onclick="showRace(${index}, null); return false;" class="text-decoration-none">${r.nome_gara}</a></td><td>${r.numero_iscritti}</td><td>${field ? 'Concorsi' : 'Corse'}</td>
-                    <td>${Math.round(duration)} min</td><td class="${anomalies > 0 ? 'text-danger fw-bold' : ''}">${anomalies}</td>
+                    <td style="width: 120px;">
+                        <input type="time" class="form-control form-control-sm d-print-none" value="${schedTime}" onchange="saveRaceTime('${r.nome_gara.replace(/'/g, "\'")}', this.value)" ${isComp ? 'disabled' : ''}>
+                        <span class="d-none d-print-inline fw-bold fs-5">${schedTime || '--:--'}</span>
+                    </td>
+                    <td class="fw-bold">
+                        <a href="#" onclick="showRace(${index}, null); return false;" class="text-decoration-none ${isComp ? 'text-success' : ''}">${r.nome_gara}</a>
+                    </td>
+                    <td>${r.numero_iscritti}</td><td>${field ? 'Concorsi' : 'Corse'}</td>
+                    <td>${Math.round(duration)} min</td>
+                    <td>${statoHtml}</td>
                 </tr>`;
             });
             table += `</tbody></table>`;
@@ -558,7 +583,7 @@
                     <div class="col-md-3"><div class="card bg-info text-white"><div class="card-body"><h4>Stima Durata Tot.</h4><h2>${hours}h ${mins}m</h2></div></div></div>
                     <div class="col-md-3"><div class="card ${anomaliesCount>0?'bg-danger':'bg-secondary'} text-white"><div class="card-body"><h4>Gare con Anomalie</h4><h2>${anomaliesCount}</h2></div></div></div>
                 </div>
-                ${anomaliesCount > 0 ? '<div class="alert alert-warning"><strong>Attenzione:</strong> Alcune gare hanno atleti senza accredito (No Time / No Mark).</div>' : ''}
+                ${anomaliesCount > 0 ? '<div class="alert alert-warning d-print-none"><strong>Attenzione:</strong> Alcune gare hanno atleti senza accredito (No Time / No Mark).</div>' : ''}
                 ${table}
             `;
         }
@@ -802,8 +827,13 @@
                     }
                 }
                 
-                alert(`Sincronizzazione completata! ${completedCount} nuove gare concluse.`);
-                renderCallRoomTable();
+                                alert(`Sincronizzazione completata! ${completedCount} nuove gare concluse.`);
+                await buildSidebar();
+                if (document.getElementById('cr-table-container')) {
+                    renderCallRoomTable();
+                } else if (document.getElementById('nav-general').querySelector('button.active').textContent.includes('Panoramica')) {
+                    showOverview();
+                }
             } catch (e) {
                 alert("Errore di rete o proxy bloccato dai sistemi anti-bot FIDAL (Cloudflare). Riprova piu' tardi o aggiorna manualmente. Dettaglio: " + e.message);
                 console.error(e);
