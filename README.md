@@ -43,16 +43,23 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
 - **Sincronizzazione SIGMA/WISE**: Cliccando il pulsante apposito, la Dashboard interroga in background la piattaforma federale: se una gara ha già i risultati pubblicati, verrà segnata come completata e depennata dalla Call Room in tempo reale.
 - **Appunti TD, Radio & Contatti**: Una sezione speciale persistente dove salvare appunti, decisioni del delegato, organigramma giurie, piano comunicazioni radio e i contatti rapidi (Medico e Organizzatore).
 
-## 🛠️ Come Utilizzare il Progetto
+## 🛠️ Come Utilizzare il Progetto (Windows e Mac)
+
+Il progetto è compatibile nativamente sia con PC Windows che con dispositivi macOS.
 
 ### Primo Avvio (Installazione)
 1. Assicurati di avere [Node.js](https://nodejs.org/it) installato sul tuo computer.
-2. Fai doppio clic sul file **`Install_Requisiti.bat`**. Questo installerà automaticamente le librerie necessarie (Playwright) per far funzionare il programma. Questa operazione va fatta solo la prima volta.
+2. Vai nella cartella del progetto e fai doppio clic sul file di installazione corrispondente al tuo sistema:
+   - **Windows:** `Install_Requisiti.bat`
+   - **Mac:** `Install_Requisiti_Mac.command` *(Nota: la prima volta il Mac potrebbe chiederti di autorizzare l'apertura tramite Preferenze di Sistema > Sicurezza e Privacy, in quanto scaricato da internet).*
+3. Questo installerà automaticamente le librerie necessarie per far funzionare il programma. Questa operazione va fatta solo la prima volta.
 
 ### Utilizzo Quotidiano
-1. Sul tuo Desktop o nella cartella del progetto, avvia il file **`Avvia Scraping FIDAL.bat`**.
-2. Apparirà una finestra di dialogo. Incolla l'URL del meeting (va bene sia il link alla pagina degli iscritti `IndexPerGara.html`, sia il link generico del calendario). Il sistema normalizzerà l'URL **automaticamente**.
-3. Lo script aprirà Microsoft Edge in background per scaricare i dati aggiornati in pochi secondi.
+1. Fai doppio clic sul file per avviare il tool:
+   - **Windows:** `Avvia Scraping FIDAL.bat`
+   - **Mac:** `Avvia_Scraping_FIDAL_Mac.command`
+2. Apparirà una finestra di dialogo nativa (popup). Incolla l'URL del meeting (va bene sia il link alla pagina degli iscritti `IndexPerGara.html`, sia il link generico del calendario).
+3. Lo script aprirà in background il browser per scaricare i dati aggiornati in pochi secondi.
 4. Al termine, si aprirà istantaneamente la **TD Dashboard** nel tuo browser.
 
 ## Screenshots
@@ -60,9 +67,9 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
 *(In aggiornamento)*
 
 ## 💻 Requisiti Tecnici
-- Sistema Operativo Windows
+- Sistema Operativo: Windows o macOS
 - Node.js installato
-- Browser Chromium/Microsoft Edge 
+- Connessione a internet (solo per il download dei dati iniziale)
 
 ## 🤝 Contribuire
 Le Pull Request (PR) sono ben accette e incoraggiate! Per mantenere l'ordine e la qualità del progetto, ti chiediamo di seguire queste due semplici regole:
