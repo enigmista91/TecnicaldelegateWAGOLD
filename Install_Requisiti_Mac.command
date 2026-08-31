@@ -1,0 +1,21 @@
+#!/bin/bash
+cd "$(dirname "$0")"
+clear
+echo "========================================================"
+echo "       WA GOLD - TECHNICAL DELEGATE DASHBOARD"
+echo "            Installazione dei requisiti (Mac)"
+echo "========================================================"
+echo ""
+echo "Prima di continuare, assicurati di aver installato Node.js"
+echo "Puoi scaricarlo da: https://nodejs.org/it"
+echo ""
+read -p "Premi Invio per continuare..."
+echo ""
+echo "Installazione delle librerie (Playwright) in corso..."
+npm install
+echo ""
+echo "Requisiti installati con successo!"
+echo "Ora puoi avviare l'applicazione facendo doppio clic su:"
+echo "Avvia_Scraping_FIDAL_Mac.command"
+echo ""
+read -p "Premi Invio per uscire..."
