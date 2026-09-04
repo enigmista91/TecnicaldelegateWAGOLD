@@ -11,8 +11,9 @@ if (args.length > 0 && args[0].trim() !== '') {
 if (!INDEX_URL.toLowerCase().includes('iscrizioni/indexpergara.html')) {
     const yearMatch = INDEX_URL.match(/20\d{2}/);
     const codeMatch = INDEX_URL.match(/(REG\d+|COD\d+)/i);
-    if (yearMatch && codeMatch) {
-        INDEX_URL = `https://www.fidal.it/risultati/${yearMatch[0]}/${codeMatch[0].toUpperCase()}/Iscrizioni/IndexPerGara.html`;
+    if (codeMatch) {
+        const year = yearMatch ? yearMatch[0] : new Date().getFullYear().toString();
+        INDEX_URL = `https://www.fidal.it/risultati/${year}/${codeMatch[0].toUpperCase()}/Iscrizioni/IndexPerGara.html`;
         console.log("URL normalizzato automaticamente a: " + INDEX_URL);
     }
 }
