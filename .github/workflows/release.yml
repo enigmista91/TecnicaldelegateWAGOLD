@@ -1,0 +1,55 @@
+name: Release WA Gold TD Dashboard
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Windows Release Package
+        run: |
+          mkdir -p release-windows
+          cp "Avvia Scraping FIDAL.bat" release-windows/
+          cp "Install_Requisiti.bat" release-windows/
+          cp "PromptURL.vbs" release-windows/
+          cp scrape_main.js release-windows/
+          cp build_dashboard.js release-windows/
+          cp dashboard_app.html release-windows/
+          cp package.json release-windows/
+          cp package-lock.json release-windows/
+          cp README.md release-windows/
+          cp LICENSE release-windows/
+          cd release-windows
+          zip -r ../WA-Gold-TD-Dashboard-Windows.zip *
+
+      - name: Create Mac Release Package
+        run: |
+          mkdir -p release-mac
+          cp "Avvia_Scraping_FIDAL_Mac.command" release-mac/
+          cp "Install_Requisiti_Mac.command" release-mac/
+          cp scrape_main.js release-mac/
+          cp build_dashboard.js release-mac/
+          cp dashboard_app.html release-mac/
+          cp package.json release-mac/
+          cp package-lock.json release-mac/
+          cp README.md release-mac/
+          cp LICENSE release-mac/
+          cd release-mac
+          zip -r ../WA-Gold-TD-Dashboard-Mac.zip *
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            WA-Gold-TD-Dashboard-Windows.zip
+            WA-Gold-TD-Dashboard-Mac.zip
+          generate_release_notes: true
