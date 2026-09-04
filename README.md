@@ -43,38 +43,49 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
 - **Sincronizzazione SIGMA/WISE**: Cliccando il pulsante apposito, la Dashboard interroga in background la piattaforma federale: se una gara ha già i risultati pubblicati, verrà segnata come completata e depennata dalla Call Room in tempo reale.
 - **Appunti TD, Radio & Contatti**: Una sezione speciale persistente dove salvare appunti, decisioni del delegato, organigramma giurie, piano comunicazioni radio e i contatti rapidi (Medico e Organizzatore).
 
-## 🛠️ Come Utilizzare il Progetto (Windows e Mac)
+## 📥 Come Scaricare e Utilizzare il Tool
 
-Il progetto è compatibile nativamente sia con PC Windows che con dispositivi macOS.
+Il programma non richiede installazioni complesse o configurazioni da terminale. Puoi scaricare l'ultima versione "Pronta all'Uso" direttamente dalla sezione **Releases**.
 
-### Primo Avvio (Installazione)
-1. Assicurati di avere [Node.js](https://nodejs.org/it) installato sul tuo computer.
-2. Vai nella cartella del progetto e fai doppio clic sul file di installazione corrispondente al tuo sistema:
-   - **Windows:** `Install_Requisiti.bat`
-   - **Mac:** `Install_Requisiti_Mac.command` *(Nota: la prima volta il Mac potrebbe chiederti di autorizzare l'apertura tramite Preferenze di Sistema > Sicurezza e Privacy, in quanto scaricato da internet).*
-3. Questo installerà automaticamente le librerie necessarie per far funzionare il programma. Questa operazione va fatta solo la prima volta.
+### 1. Scaricare la Release
+1. Vai nella pagina [Releases](../../releases/latest) del repository su GitHub.
+2. Sotto la voce **Assets**, scarica il pacchetto `.zip` corretto in base al tuo computer:
+   - `WA-Gold-TD-Dashboard-Windows.zip` se hai un PC Windows.
+   - `WA-Gold-TD-Dashboard-Mac.zip` se hai un Mac.
+3. Estrai (unzip) la cartella sul tuo Desktop o dove preferisci.
 
-### Utilizzo Quotidiano
-1. Fai doppio clic sul file per avviare il tool:
-   - **Windows:** `Avvia Scraping FIDAL.bat`
-   - **Mac:** `Avvia_Scraping_FIDAL_Mac.command`
-2. Apparirà una finestra di dialogo nativa (popup). Incolla l'URL del meeting (va bene sia il link alla pagina degli iscritti `IndexPerGara.html`, sia il link generico del calendario).
-3. Lo script aprirà in background il browser per scaricare i dati aggiornati in pochi secondi.
-4. Al termine, si aprirà istantaneamente la **TD Dashboard** nel tuo browser.
+### 2. Primo Avvio (Installazione Requisiti)
+L'applicazione scarica i dati tramite un motore basato su **Node.js**. Solo la primissima volta:
+1. Assicurati di avere installato [Node.js](https://nodejs.org/it).
+2. Apri la cartella estratta e fai **doppio clic** sul file di installazione:
+   - Su **Windows**: `Install_Requisiti.bat`
+   - Su **Mac**: `Install_Requisiti_Mac.command` *(su Mac potrebbe essere necessario cliccare col tasto destro e scegliere "Apri" la prima volta per confermare l'apertura).*
+3. Attendi la fine dell'installazione delle librerie in background (vedrai scorrere delle scritte).
 
-## Screenshots
+### 3. Utilizzo Quotidiano (Scaricare un meeting)
+Per ogni nuovo meeting che vuoi gestire:
+1. Fai **doppio clic** sul lanciatore:
+   - Su **Windows**: `Avvia Scraping FIDAL.bat`
+   - Su **Mac**: `Avvia_Scraping_FIDAL_Mac.command`
+2. Si aprirà una finestrella di sistema che ti chiederà di incollare l'**URL del meeting**.
+   *(Puoi incollare sia il link generale della gara dal calendario FIDAL, es. `https://www.fidal.it/calendario/GARA/REG44935`, sia quello specifico degli iscritti `IndexPerGara.html`).*
+3. Premi **OK**. L'applicazione scaricherà in automatico e in modo invisibile i dati aggiornati degli iscritti.
+4. Pochi istanti dopo, si aprirà il tuo browser web direttamente sulla **TD Dashboard** popolata coi dati!
 
-*(In aggiornamento)*
 
 ## 💻 Requisiti Tecnici
 - Sistema Operativo: Windows o macOS
 - Node.js installato
-- Connessione a internet (solo per il download dei dati iniziale)
+- Connessione a internet (solo nella fase di caricamento dei dati iniziale)
 
-## 🤝 Contribuire
-Le Pull Request (PR) sono ben accette e incoraggiate! Per mantenere l'ordine e la qualità del progetto, ti chiediamo di seguire queste due semplici regole:
-1. Ogni Pull Request deve essere sempre corredata da una **Issue** aperta in precedenza, in modo da poterne discutere l'implementazione o segnalare il bug.
-2. I merge delle PR verranno approvati ed effettuati **esclusivamente dal proprietario (owner)** del repository, dopo un'opportuna code review.
+## 🤝 Contribuire (Per Sviluppatori)
+Le Pull Request (PR) sono ben accette! 
+Se desideri contribuire al codice sorgente: fai un clone della repository (non scaricare lo zip delle Release).
+Per mantenere l'ordine e la qualità del progetto, ti chiediamo di seguire queste due semplici regole:
+1. Ogni Pull Request deve essere sempre corredata da una **Issue** aperta in precedenza.
+2. I merge delle PR verranno approvati ed effettuati **esclusivamente dal proprietario (owner)** del repository.
+
+Ogni push su branch master con il tag di versione aggiornato (es. `v1.0.1`) rigenera in automatico tramite Github Actions le Release pubbliche.
 
 ## ⚖️ Licenza e Disclaimer
 Questo progetto è distribuito con licenza **[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/)**.
