@@ -1,6 +1,7 @@
 @echo off
 title Installazione Requisiti - WA Gold TD Dashboard
 color 0A
+cd /d "%~dp0"
 
 echo ========================================================
 echo        WA GOLD - TECHNICAL DELEGATE DASHBOARD

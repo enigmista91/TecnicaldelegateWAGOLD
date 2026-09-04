@@ -1,9 +1,15 @@
 @echo off
 title WA Gold TD Dashboard - Aggiornamento Dati
 echo Avvio del pannello di controllo...
-cd /d "c:\Users\matte\Desktop\analisi meeting"
+cd /d "%~dp0"
 
 for /f "delims=" %%I in ('cscript //nologo PromptURL.vbs') do set "URL=%%I"
+
+if "%URL%"=="" (
+    echo Nessun URL inserito. Uscita in corso...
+    timeout /t 2 >nul
+    exit /b
+)
 
 echo.
 echo Connessione al portale FIDAL in corso (Playwright)...
