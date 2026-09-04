@@ -655,6 +655,7 @@
             const offsets = {
                 corse: { cr1: getOff('cr1_corse', 30), cr2: getOff('cr2_corse', 20), track: getOff('track_corse', 10) },
                 concorsi: { cr1: getOff('cr1_concorsi', 45), cr2: getOff('cr2_concorsi', 30), track: getOff('track_concorsi', 20) },
+                alto: { cr1: getOff('cr1_alto', 50), cr2: getOff('cr2_alto', 35), track: getOff('track_alto', 30) },
                 asta: { cr1: getOff('cr1_asta', 60), cr2: getOff('cr2_asta', 45), track: getOff('track_asta', 40) }
             };
             
@@ -692,8 +693,15 @@
                             <div class="col-md-3"><input type="number" id="track-concorsi" class="form-control form-control-sm" value="${offsets.concorsi.track}"></div>
                         </div>
                         
+                        <div class="row align-items-center mb-2">
+                            <div class="col-md-3 text-start fw-bold">Salto in Alto</div>
+                            <div class="col-md-3"><input type="number" id="cr1-alto" class="form-control form-control-sm" value="${offsets.alto.cr1}"></div>
+                            <div class="col-md-3"><input type="number" id="cr2-alto" class="form-control form-control-sm" value="${offsets.alto.cr2}"></div>
+                            <div class="col-md-3"><input type="number" id="track-alto" class="form-control form-control-sm" value="${offsets.alto.track}"></div>
+                        </div>
+                        
                         <div class="row align-items-center mb-3">
-                            <div class="col-md-3 text-start fw-bold">Alto e Asta</div>
+                            <div class="col-md-3 text-start fw-bold">Salto con l'Asta</div>
                             <div class="col-md-3"><input type="number" id="cr1-asta" class="form-control form-control-sm" value="${offsets.asta.cr1}"></div>
                             <div class="col-md-3"><input type="number" id="cr2-asta" class="form-control form-control-sm" value="${offsets.asta.cr2}"></div>
                             <div class="col-md-3"><input type="number" id="track-asta" class="form-control form-control-sm" value="${offsets.asta.track}"></div>
@@ -718,7 +726,7 @@
         }
 
         window.saveCallRoomSettings = function() {
-            const types = ['corse', 'concorsi', 'asta'];
+            const types = ['corse', 'concorsi', 'alto', 'asta'];
             types.forEach(t => {
                 localStorage.setItem(`cr1_${t}`, document.getElementById(`cr1-${t}`).value);
                 localStorage.setItem(`cr2_${t}`, document.getElementById(`cr2-${t}`).value);
@@ -735,6 +743,7 @@
             const offsets = {
                 corse: { cr1: getOff('cr1_corse', 30), cr2: getOff('cr2_corse', 20), track: getOff('track_corse', 10) },
                 concorsi: { cr1: getOff('cr1_concorsi', 45), cr2: getOff('cr2_concorsi', 30), track: getOff('track_concorsi', 20) },
+                alto: { cr1: getOff('cr1_alto', 50), cr2: getOff('cr2_alto', 35), track: getOff('track_alto', 30) },
                 asta: { cr1: getOff('cr1_asta', 60), cr2: getOff('cr2_asta', 45), track: getOff('track_asta', 40) }
             };
             
@@ -763,7 +772,8 @@
                 
                 let cat = 'corse';
                 const lower = r.name.toLowerCase();
-                if (lower.includes('asta') || lower.includes('alto')) cat = 'asta';
+                if (lower.includes('asta')) cat = 'asta';
+                else if (lower.includes('alto')) cat = 'alto';
                 else if (['salto', 'lungo', 'triplo', 'peso', 'disco', 'martello', 'giavellotto', 'vortex'].some(k => lower.includes(k))) cat = 'concorsi';
                 
                 const o = offsets[cat];
