@@ -2,8 +2,8 @@ name: Release WA Gold TD Dashboard
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
 
 jobs:
   build-and-release:
@@ -46,10 +46,12 @@ jobs:
           cd release-mac
           zip -r ../WA-Gold-TD-Dashboard-Mac.zip *
 
-      - name: Create GitHub Release
+      - name: Create or Update Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: latest
+          name: Ultima Versione (Auto-aggiornante)
+          body: Questa release si aggiorna automaticamente a ogni modifica inserita nel programma. Scarica sempre i file più recenti da qui!
           files: |
             WA-Gold-TD-Dashboard-Windows.zip
             WA-Gold-TD-Dashboard-Mac.zip
-          generate_release_notes: true
