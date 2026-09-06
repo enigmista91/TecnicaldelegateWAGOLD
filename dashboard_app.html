@@ -347,6 +347,7 @@
                     <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showNotes()">📝 Appunti TD & Radio</button>
                     <button class="nav-link w-100 text-start btn btn-sm mb-1 text-primary fw-bold" onclick="syncWise()">🔄 Sincronizza WISE</button>
                     <button class="nav-link w-100 text-start btn btn-sm mb-1 text-success fw-bold" onclick="showShoeControl()">👟 Controllo Scarpe</button>
+                    <button class="nav-link w-100 text-start btn btn-sm mb-1 text-danger fw-bold" onclick="showAthleteSearch()">🔍 Ricerca & Doping</button>
                 </div>
                 
                 <hr class="text-secondary">
@@ -947,7 +948,66 @@
             }
         }
 
-                window.showShoeControl = function(btn) {
+                
+        window.showAthleteSearch = function(btn) {
+            clearActiveNav();
+            if(btn) btn.classList.add('active');
+            else document.querySelectorAll('#nav-general .nav-link')[5].classList.add('active');
+            
+            let h = `
+            <h2>🔍 Ricerca Atleti & Doping</h2>
+            <hr>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-4 border-primary shadow-sm">
+                        <div class="card-header bg-primary text-white fw-bold">
+                            Ricerca Atleti FIDAL
+                        </div>
+                        <div class="card-body">
+                            <p>Accedi al portale ufficiale della Federazione Italiana di Atletica Leggera per consultare la scheda, le prestazioni e lo storico degli atleti tesserati.</p>
+                            <a href="https://www.fidal.it/atleti.php" target="_blank" class="btn btn-outline-primary w-100 fw-bold">
+                                🔗 Vai alla Ricerca FIDAL
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card mb-4 border-info shadow-sm">
+                        <div class="card-header bg-info text-white fw-bold">
+                            World Athletics Rankings
+                        </div>
+                        <div class="card-body">
+                            <p>Cerca i profili internazionali degli atleti, i punteggi ranking WA (World Rankings), record personali e le posizioni globali e continentali.</p>
+                            <a href="https://worldathletics.org/athletes" target="_blank" class="btn btn-outline-info w-100 fw-bold text-dark">
+                                🌍 Vai a WA Athlete Search
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-2">
+                <div class="col-12">
+                    <div class="card border-danger shadow-sm">
+                        <div class="card-header bg-danger text-white fw-bold">
+                            🚨 Sanzioni Disciplinari e Doping (AIU)
+                        </div>
+                        <div class="card-body">
+                            <p>In qualità di Delegato Tecnico potresti dover verificare se un atleta internazionale è sospeso o ineleggibile per questioni di doping (Regole Antidoping WA).</p>
+                            <p>La <strong>Athletics Integrity Unit (AIU)</strong> mantiene e aggiorna pubblicamente la <em>Global List of Ineligible Persons</em> (lista globale delle persone ineleggibili).</p>
+                            <a href="https://www.athleticsintegrity.org/disciplinary-process/global-list-of-ineligible-persons" target="_blank" class="btn btn-danger fw-bold">
+                                ⚖️ Consulta la Lista Globale AIU
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+            document.getElementById('main-content').innerHTML = h;
+        }
+
+        window.showShoeControl = function(btn) {
             clearActiveNav();
             if(btn) btn.classList.add('active');
             else document.querySelectorAll('#nav-general .nav-link')[3].classList.add('active');
