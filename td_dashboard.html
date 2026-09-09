@@ -289,7 +289,10 @@
             const mins = Math.round(totalDurationMins % 60);
             
             document.getElementById('main-content').innerHTML = `
-                <h2>${currentMeeting.name} - Panoramica</h2><hr>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h2>${currentMeeting.name} - Panoramica</h2>
+                      <button class="btn btn-outline-secondary d-print-none" onclick="window.print()">🖨️ Stampa Riepilogo Gare</button>
+                  </div><hr>
                 <div class="row mb-4">
                     <div class="col-md-3"><div class="card bg-primary text-white"><div class="card-body"><h4>Totale Gare</h4><h2>${currentMeeting.data.length}</h2></div></div></div>
                     <div class="col-md-3"><div class="card bg-success text-white"><div class="card-body"><h4>Totale Atleti</h4><h2>${total}</h2></div></div></div>
