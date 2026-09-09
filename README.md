@@ -1,5 +1,9 @@
 # 🏅 WA Gold - Technical Delegate Dashboard
 
+[![Guarda il video promozionale](https://img.youtube.com/vi/o6fySTXA1E0/maxresdefault.jpg)](https://youtu.be/o6fySTXA1E0)
+
+👉 **[Clicca qui per guardare il video dimostrativo su YouTube!](https://youtu.be/o6fySTXA1E0)**
+
 Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici di atletica leggera (livello World Athletics Gold) nella gestione delle competizioni, nell'applicazione del Regolamento Tecnico (TR 20 e TR 25) e nella creazione ottimizzata delle Start List.
 
 ## 🚀 Funzionalità Principali
