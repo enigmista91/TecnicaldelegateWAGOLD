@@ -1,0 +1,16 @@
+{
+  "name": "promo-video",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "remotion studio src/index.jsx",
+    "build": "remotion render src/index.jsx WAGoldPromo out/promo.mp4"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "remotion": "^4.0.523"
+  },
+  "devDependencies": {
+    "@remotion/cli": "^4.0.523"
+  }
+}
