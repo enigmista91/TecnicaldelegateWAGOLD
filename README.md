@@ -24,15 +24,20 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
 6. **Intervento Manuale e Persistenza**
     - Possibilità di spostare manualmente un atleta da una batteria all'altra tramite un pratico menu a tendina.
     - Tutte le serie generate e modificate vengono **salvate in cache (LocalStorage)** per non perdere i dati.
-7. **Materiale per Giudici e Segreteria (Stampe)**
+7. **Materiale per Giudici e Segreteria (Stampe Avanzate)**
+    - **Riepilogo Programma Gare (Novità)**: Stampa l'intera tabella della Home Page con orari, iscritti e stime durata da consegnare a Speaker e Starter.
+    - **Fogli Controllo Attrezzi per Direttore Tecnico (Novità)**: Per tutti i concorsi (lanci e salti), un pulsante dedicato genera un modulo precompilato (ordinato alfabeticamente) in cui il DT può spuntare e annotare velocemente Marca, Colore e Peso degli attrezzi portati dagli atleti.
     - Fogli Gara formattati per i salti in estensione e lanci (3+3 prove).
     - Fogli Gara dinamici per Alto/Asta con griglia basata sulle progressioni inserite.
     - **Fogli Contagiri Cartacei** (800m-10000m) con due stili disponibili (Normale FIDAL e World Athletics pre-compilato).
     - Integrazione diretta (pulsante) con la **Web App Contagiri Elettronico**.
-    - **Stampe Pulite e Ottimizzate**: menù e bottoni superflui (es. Sincronizza WISE, impostazioni Call Room) scompaiono automaticamente su carta, fornendo tabelle nitide e pronte per essere consegnate ai colleghi.
+    - **Stampe Pulite e Ottimizzate**: menù e bottoni superflui (es. Sincronizza WISE, barra laterale) scompaiono automaticamente su carta, fornendo tabelle nitide e pronte per essere consegnate ai colleghi.
 8. **Controllo Scarpe (Regola TR 5)**
     - Strumento rapido integrato per consultare il database ufficiale *WA Shoe CertCheck*.
     - Riepilogo sempre aggiornato degli spessori massimi ammessi in pista e pedana (incluse le regolamentazioni armonizzate).
+9. **Ricerca Atleti e Squalifiche Doping (AIU)**
+    - Collegamenti rapidi ai database ufficiali FIDAL e World Athletics (Rankings) per consultare i profili e le schede degli atleti.
+    - Modulo rosso "Sanzioni Disciplinari" che si collega direttamente alla *Global List of Ineligible Persons* gestita dall'Athletics Integrity Unit (AIU).
 
 ## 💡 Nuove Funzionalità (Architettura 2.0 SPA)
 
