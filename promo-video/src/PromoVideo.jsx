@@ -1,38 +1,77 @@
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig, spring } from "remotion";
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig, spring, Img, staticFile } from "remotion";
 
 export const PromoVideo = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Animations
-  const opacity1 = interpolate(frame, [0, 30, 90, 120], [0, 1, 1, 0], { extrapolateRight: "clamp" });
-  const scale1 = spring({ frame, fps, config: { damping: 200 } });
+  // Scene 1: Panoramica (Frames 0 - 90)
+  const opacity1 = interpolate(frame, [0, 15, 75, 90], [0, 1, 1, 0], { extrapolateRight: "clamp" });
+  const scale1 = interpolate(frame, [0, 90], [1, 1.05]); // Ken burns effect
+  
+  // Scene 2: Gestione Gara (Frames 90 - 180)
+  const opacity2 = interpolate(frame, [90, 105, 165, 180], [0, 1, 1, 0], { extrapolateRight: "clamp" });
+  const scale2 = interpolate(frame, [90, 180], [1, 1.05]);
 
-  const opacity2 = interpolate(frame, [120, 150, 210, 240], [0, 1, 1, 0], { extrapolateRight: "clamp" });
-  const scale2 = spring({ frame: frame - 120, fps, config: { damping: 200 } });
+  // Scene 3: Call Room Live (Frames 180 - 270)
+  const opacity3 = interpolate(frame, [180, 195, 255, 270], [0, 1, 1, 0], { extrapolateRight: "clamp" });
+  const scale3 = interpolate(frame, [180, 270], [1, 1.05]);
+  
+  // Scene 4: Outro (Frames 270 - 360)
+  const opacity4 = interpolate(frame, [270, 285], [0, 1], { extrapolateRight: "clamp" });
+  const scale4 = spring({ frame: frame - 270, fps, config: { damping: 200 } });
 
-  const opacity3 = interpolate(frame, [240, 270], [0, 1], { extrapolateRight: "clamp" });
-  const scale3 = spring({ frame: frame - 240, fps, config: { damping: 200 } });
+  // Custom text animations
+  const textY1 = spring({ frame, fps, from: 50, to: 0, config: { damping: 15 } });
+  const textY2 = spring({ frame: frame - 90, fps, from: 50, to: 0, config: { damping: 15 } });
+  const textY3 = spring({ frame: frame - 180, fps, from: 50, to: 0, config: { damping: 15 } });
 
   return (
-    <AbsoluteFill style={{ backgroundColor: "#1e1e2f", color: "white", fontFamily: "sans-serif", justifyContent: "center", alignItems: "center", textAlign: "center" }}>
+    <AbsoluteFill style={{ backgroundColor: "#1e1e2f", fontFamily: "sans-serif" }}>
       
-      {/* Scene 1: Introduction */}
-      <AbsoluteFill style={{ opacity: opacity1, transform: `scale(${scale1})`, justifyContent: "center", alignItems: "center" }}>
-        <h1 style={{ fontSize: 100, marginBottom: 20, color: "#f39c12" }}>WA Gold</h1>
-        <h2 style={{ fontSize: 60 }}>Technical Delegate Dashboard</h2>
+      {/* Scene 1 */}
+      <AbsoluteFill style={{ opacity: opacity1 }}>
+        <AbsoluteFill style={{ transform: `scale(${scale1})` }}>
+          <Img src={staticFile("step1.png")} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </AbsoluteFill>
+        <div style={{ position: 'absolute', bottom: 100, width: '100%', textAlign: 'center', transform: `translateY(${textY1}px)` }}>
+          <div style={{ display: 'inline-block', backgroundColor: 'rgba(0,0,0,0.8)', padding: '20px 40px', borderRadius: 20 }}>
+            <h1 style={{ fontSize: 60, color: "#f39c12", margin: 0 }}>WA Gold TD Dashboard</h1>
+            <h2 style={{ fontSize: 40, color: "white", margin: 0, marginTop: 10 }}>Panoramica e calcolo durate automatico</h2>
+          </div>
+        </div>
       </AbsoluteFill>
 
-      {/* Scene 2: Features */}
-      <AbsoluteFill style={{ opacity: opacity2, transform: `scale(${scale2})`, justifyContent: "center", alignItems: "center" }}>
-        <h1 style={{ fontSize: 80, color: "#3498db" }}>Gestione Gare Istantanea</h1>
-        <h2 style={{ fontSize: 50, marginTop: 20 }}>100% Offline • Start List • Stampe</h2>
+      {/* Scene 2 */}
+      <AbsoluteFill style={{ opacity: opacity2 }}>
+        <AbsoluteFill style={{ transform: `scale(${scale2})` }}>
+          <Img src={staticFile("step2.png")} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </AbsoluteFill>
+        <div style={{ position: 'absolute', bottom: 100, width: '100%', textAlign: 'center', transform: `translateY(${textY2}px)` }}>
+          <div style={{ display: 'inline-block', backgroundColor: 'rgba(0,0,0,0.8)', padding: '20px 40px', borderRadius: 20 }}>
+            <h1 style={{ fontSize: 60, color: "#3498db", margin: 0 }}>Composizione Start List</h1>
+            <h2 style={{ fontSize: 40, color: "white", margin: 0, marginTop: 10 }}>Seeding automatico a zig-zag o a sorteggio</h2>
+          </div>
+        </div>
       </AbsoluteFill>
 
-      {/* Scene 3: Outro */}
-      <AbsoluteFill style={{ opacity: opacity3, transform: `scale(${scale3})`, justifyContent: "center", alignItems: "center" }}>
-        <h1 style={{ fontSize: 90, color: "#2ecc71" }}>Scaricala ora!</h1>
-        <h2 style={{ fontSize: 50, marginTop: 20 }}>Disponibile su GitHub per Windows e Mac</h2>
+      {/* Scene 3 */}
+      <AbsoluteFill style={{ opacity: opacity3 }}>
+        <AbsoluteFill style={{ transform: `scale(${scale3})` }}>
+          <Img src={staticFile("step3.png")} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </AbsoluteFill>
+        <div style={{ position: 'absolute', bottom: 100, width: '100%', textAlign: 'center', transform: `translateY(${textY3}px)` }}>
+          <div style={{ display: 'inline-block', backgroundColor: 'rgba(0,0,0,0.8)', padding: '20px 40px', borderRadius: 20 }}>
+            <h1 style={{ fontSize: 60, color: "#e74c3c", margin: 0 }}>Call Room Live</h1>
+            <h2 style={{ fontSize: 40, color: "white", margin: 0, marginTop: 10 }}>Allarmi di chiamata indipendenti per Corsia e Pedana</h2>
+          </div>
+        </div>
+      </AbsoluteFill>
+
+      {/* Scene 4 */}
+      <AbsoluteFill style={{ opacity: opacity4, transform: `scale(${scale4})`, justifyContent: "center", alignItems: "center" }}>
+        <Img src={staticFile("step4.png")} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3, position: 'absolute' }} />
+        <h1 style={{ fontSize: 100, color: "#2ecc71", textShadow: "0px 5px 15px rgba(0,0,0,0.5)" }}>100% Gratuita e Offline</h1>
+        <h2 style={{ fontSize: 50, marginTop: 20, color: "white", textShadow: "0px 5px 15px rgba(0,0,0,0.5)" }}>Disponibile ora su GitHub</h2>
       </AbsoluteFill>
 
     </AbsoluteFill>
