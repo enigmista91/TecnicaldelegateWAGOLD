@@ -613,7 +613,7 @@
                     </div>`;
                 }
                     
-                html += `<button class="btn btn-primary" onclick="generateField(${index})">Genera Start List</button>
+                html += `<div class="d-flex gap-2"><button class="btn btn-primary" onclick="generateField(${index})">Genera Start List</button><button class="btn btn-outline-primary" onclick="printAttrezzi(${index})">🛠️ Foglio Attrezzi (DT)</button></div>
                 </div>
                 <div id="results-${index}"></div>
                 `;
@@ -976,7 +976,10 @@ function timeToSeconds(t) {
             
             let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
                 <h4>Foglio Gara (Start List)</h4>
-                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">­ƒû¿ Stampa</button>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="printAttrezzi(${index})">🛠️ Foglio Attrezzi (DT)</button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨️ Stampa</button>
+                </div>
             </div>
             <table class="table table-bordered table-sm" style="font-size: 0.85rem;">
                 <thead class="table-light">`;
@@ -1484,7 +1487,10 @@ function timeToSeconds(t) {
             
             let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
                 <h4>Foglio Gara (Start List)</h4>
-                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">­ƒû¿ Stampa</button>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="printAttrezzi(${index})">🛠️ Foglio Attrezzi (DT)</button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨️ Stampa</button>
+                </div>
             </div>
             <table class="table table-bordered table-sm" style="font-size: 0.85rem;">
                 <thead class="table-light">`;
