@@ -12,14 +12,16 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
    Estrazione automatica degli iscritti da qualsiasi pagina indice di un meeting FIDAL. Nessun inserimento manuale richiesto!
 2. **Supporto Decisionale Offline**
    La dashboard HTML generata è completamente nativa, stand-alone e *client-side*, permettendo al TD di prendere decisioni anche sul campo senza connessione a internet.
-3. **Seeding Automatico Corse (Regola TR 20)**
+3. **Seeding Automatico Corse ed Esplosione Orari per Serie (Regola TR 20)**
    - Composizione del numero esatto di batterie (Heats) basato sulle corsie a disposizione.
    - Distribuzione degli atleti a "Zig-Zag" in base al Season Best (SB).
    - Assegnazione automatica delle **corsie preferenziali** (es. 3, 4, 5, 6 su piste a 6 corsie).
    - **Gestione corsie inagibili**: possibilità di specificare un sottoinsieme di corsie attive (es. `2,3,4,5,6` se la 1 è rotta) e ricalcolo automatico dell'algoritmo di assegnazione per privilegiare il centro.
-4. **Seeding Automatico e Progressioni Concorsi (Regola TR 25 & TR 26.1)**
+   - **Esplosione Orari Call Room per Singola Serie (Novità)**: calcolo automatico (e personalizzabile) dell'intervallo in minuti tra una serie e l'altra, con esplosione degli orari di Apertura CR1, Uscita CR2, Ingresso Pista e Partenza per ogni singola serie sia nel Foglio Gara sia nel Tabellone Call Room Live.
+4. **Seeding Automatico, Divisione in Gruppi e Progressioni Concorsi (Regola TR 25 & TR 26.1)**
    - Algoritmo per **Random Draw** (sorteggio casuale consigliato per le qualificazioni).
    - Algoritmo a **Ordine Inverso** (i migliori SB saltano/lanciano per ultimi, ideale per le Finali).
+   - **Suddivisione in più Gruppi per Fasce di Accredito (Novità)**: per i concorsi numerosi è possibile dividere la gara in 2, 3 o 4 Gruppi (Gruppo A con i migliori accrediti, Gruppo B con i successivi, ecc.), generando automaticamente fogli gara e fogli controllo attrezzi separati in stampa per ciascun gruppo.
    - **Validazione Progressioni (TR 26.1)** per Alto e Asta in tempo reale (incrementi di min 2cm/5cm senza mai aumentare).
 5. **Panoramica Avanzata e Timetable (Stima Durate)**
    - Stima automatica del **Timetable** per ogni gara in base agli iscritti, alle batterie necessarie e alla specialità.
@@ -81,6 +83,9 @@ Per ogni nuovo meeting che vuoi gestire:
 3. Premi **OK**. L'applicazione scaricherà in automatico e in modo invisibile i dati aggiornati degli iscritti.
 4. Pochi istanti dopo, si aprirà il tuo browser web direttamente sulla **TD Dashboard** popolata coi dati!
 
+
+## 🗺️ Roadmap & Sviluppi Futuri
+- [ ] **Pubblicazione e Streaming Andamento Orari su Pagina Web Esterna**: Possibilità di trasmettere in tempo reale dalla Dashboard del TD a una pagina web pubblica l'andamento aggiornato degli orari delle gare/serie e lo stato live della Call Room (architettura di trasmissione dati da definire).
 
 ## 💻 Requisiti Tecnici
 - Sistema Operativo: Windows o macOS
