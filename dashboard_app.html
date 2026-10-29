@@ -173,9 +173,19 @@
         }
         function isMiddleDistance(name) {
             const lower = name.toLowerCase();
-            return ['800', '1000', '1500', 'miglio', '2000', '3000', 'siepi', '5000', '10000', 'marcia'].some(k => lower.includes(k));
+            return ['600', '800', '1000', '1200', '1500', 'miglio', '2000', '3000', 'siepi', '5000', '10000', 'marcia'].some(k => lower.includes(k));
         }
-        function estimateDuration(nomeGara, iscrittiCount, isMiddle, heatsCount) {
+        function getMinutesPerHeat(nomeGara) {
+            const lower = nomeGara.toLowerCase();
+            if (lower.includes('10000') || lower.includes('marcia 10')) return 40;
+            if (lower.includes('5000') || lower.includes('marcia 5')) return 22;
+            if (lower.includes('3000') || lower.includes('siepi')) return 15;
+            if (lower.includes('1500') || lower.includes('miglio')) return 8;
+            if (lower.includes('800') || lower.includes('1000')) return 6;
+            if (lower.includes('400')) return 5;
+            return 4;
+        }
+        function estimateDuration(nomeGara, iscrittiCount, isMiddle, heatsCount, customInterval) {
             const lower = nomeGara.toLowerCase();
             if (isFieldEvent(nomeGara)) {
                 if (lower.includes('asta')) return iscrittiCount * 3 + 15;
@@ -183,13 +193,8 @@
                 return Math.ceil(iscrittiCount * 1.5) + 15;
             }
             let assumedHeats = heatsCount || Math.ceil(iscrittiCount / (isMiddle ? 12 : 6));
-            if (lower.includes('10000') || lower.includes('marcia 10')) return assumedHeats * 40;
-            if (lower.includes('5000') || lower.includes('marcia 5')) return assumedHeats * 22;
-            if (lower.includes('3000') || lower.includes('siepi')) return assumedHeats * 15;
-            if (lower.includes('1500') || lower.includes('miglio')) return assumedHeats * 8;
-            if (lower.includes('800') || lower.includes('1000')) return assumedHeats * 6;
-            if (lower.includes('400')) return assumedHeats * 5;
-            return assumedHeats * 4;
+            const minsPerHeat = customInterval ? parseInt(customInterval) : getMinutesPerHeat(nomeGara);
+            return assumedHeats * minsPerHeat;
         }
 
         // Sidebar
@@ -250,7 +255,18 @@
                 total += r.numero_iscritti;
                 const field = isFieldEvent(r.nome_gara);
                 const isMiddle = isMiddleDistance(r.nome_gara);
-                const duration = estimateDuration(r.nome_gara, r.numero_iscritti, isMiddle, null);
+                let confHeats = null, confInterval = null;
+                if (!field) {
+                    const savedTrack = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
+                    if (savedTrack) {
+                        try {
+                            const td = JSON.parse(savedTrack);
+                            if (td.heats) confHeats = td.heats.length;
+                            if (td.heatInterval) confInterval = td.heatInterval;
+                        } catch(e) {}
+                    }
+                }
+                const duration = estimateDuration(r.nome_gara, r.numero_iscritti, isMiddle, confHeats, confInterval);
                 totalDurationMins += duration;
                 const anomalies = r.iscritti.filter(i => !i.accredito.trim()).length;
                 if (anomalies > 0) anomaliesCount++;
@@ -438,6 +454,14 @@
             renderCallRoomTable();
         }
 
+        function formatMinsToTime(totalMins) {
+            let mins = totalMins % 1440;
+            if (mins < 0) mins += 1440;
+            const hh = Math.floor(mins / 60).toString().padStart(2, '0');
+            const mm = (mins % 60).toString().padStart(2, '0');
+            return hh + ':' + mm;
+        }
+
         async function renderCallRoomTable() {
             const container = document.getElementById('cr-table-container');
             if (!container) return;
@@ -451,27 +475,17 @@
             };
             
             const races = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
-            races.sort((a,b) => (a.scheduledTime || '23:59').localeCompare(b.scheduledTime || '23:59'));
-            
             const now = new Date();
             const nowMins = now.getHours() * 60 + now.getMinutes();
             
-            let html = '<table class="table table-bordered text-center align-middle"><thead class="table-dark"><tr><th>Orario Gara</th><th>Gara</th><th>Apertura CR1</th><th>Apertura CR2</th><th>Ingresso Pista</th><th>Stato</th></tr></thead><tbody>';
+            let rowsData = [];
             
             races.forEach(r => {
                 if (!r.scheduledTime) return; // Skip races without time
                 if (r.isCompleted) return; // Skip completed
                 
                 const [h, m] = r.scheduledTime.split(':').map(Number);
-                const raceMins = h * 60 + m;
-                
-                const formatTime = (totalMins) => {
-                    let mins = totalMins;
-                    if(mins < 0) mins += 1440;
-                    const hh = Math.floor(mins / 60).toString().padStart(2, '0');
-                    const mm = (mins % 60).toString().padStart(2, '0');
-                    return hh+':'+mm;
-                };
+                const baseRaceMins = h * 60 + m;
                 
                 let cat = 'corse';
                 const lower = r.name.toLowerCase();
@@ -480,7 +494,80 @@
                 else if (['salto', 'lungo', 'triplo', 'peso', 'disco', 'martello', 'giavellotto', 'vortex'].some(k => lower.includes(k))) cat = 'concorsi';
                 
                 const o = offsets[cat];
+                const raceIndex = currentMeeting.data.findIndex(d => d.nome_gara === r.name);
+                const raceObj = raceIndex > -1 ? currentMeeting.data[raceIndex] : null;
                 
+                if (cat === 'corse' && raceObj && raceObj.numero_iscritti > 0) {
+                    const savedTrackStr = localStorage.getItem('race_data_' + currentMeeting.id + '_' + raceIndex);
+                    let heatsCount = 1;
+                    let heatInterval = getMinutesPerHeat(r.name);
+                    let heatAthletes = [];
+                    let isConfigured = false;
+                    
+                    if (savedTrackStr) {
+                        try {
+                            const rd = JSON.parse(savedTrackStr);
+                            if (rd.heats && rd.heats.length > 0) {
+                                heatsCount = rd.heats.length;
+                                heatAthletes = rd.heats.map(h => h.length);
+                                isConfigured = true;
+                            }
+                            if (rd.heatInterval) heatInterval = parseInt(rd.heatInterval) || heatInterval;
+                        } catch(e) {}
+                    } else {
+                        const isMid = isMiddleDistance(r.name);
+                        const defLanes = isMid ? 12 : 6;
+                        heatsCount = Math.max(1, Math.ceil(raceObj.numero_iscritti / defLanes));
+                    }
+                    
+                    for (let i = 0; i < heatsCount; i++) {
+                        const heatRaceMins = baseRaceMins + (i * heatInterval);
+                        const subLabel = heatsCount > 1
+                            ? `<span class="badge bg-primary ms-2">Serie ${i+1}/${heatsCount}</span>`
+                            : (isConfigured ? `<span class="badge bg-secondary ms-2">Serie Unica</span>` : '');
+                        const athInfo = heatAthletes[i] !== undefined
+                            ? `<small class="text-muted ms-1">(${heatAthletes[i]} atl.)</small>`
+                            : (heatsCount > 1 ? `<small class="text-muted ms-1">(stima)</small>` : `<small class="text-muted ms-1">(${raceObj.numero_iscritti} atl.)</small>`);
+                        
+                        rowsData.push({
+                            raceMins: heatRaceMins,
+                            timeStr: formatMinsToTime(heatRaceMins),
+                            subTimeNote: heatsCount > 1 ? `Serie ${i+1} (+${i * heatInterval}')` : '',
+                            nameHtml: `<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none text-dark fw-bold">${r.name}</a> ${subLabel} ${athInfo}`,
+                            o
+                        });
+                    }
+                } else {
+                    let groupBadge = '';
+                    if (raceIndex > -1) {
+                        const savedFieldStr = localStorage.getItem('field_data_' + currentMeeting.id + '_' + raceIndex);
+                        if (savedFieldStr) {
+                            try {
+                                const fd = JSON.parse(savedFieldStr);
+                                if (fd.numGroups && fd.numGroups > 1) {
+                                    groupBadge = `<span class="badge bg-info text-dark ms-2">${fd.numGroups} Gruppi (A-${String.fromCharCode(64 + fd.numGroups)})</span>`;
+                                }
+                            } catch(e) {}
+                        }
+                    }
+                    rowsData.push({
+                        raceMins: baseRaceMins,
+                        timeStr: r.scheduledTime,
+                        subTimeNote: '',
+                        nameHtml: raceIndex > -1
+                            ? `<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none text-dark fw-bold">${r.name}</a> ${groupBadge}`
+                            : `<span class="fw-bold">${r.name}</span>`,
+                        o
+                    });
+                }
+            });
+            
+            rowsData.sort((a, b) => a.raceMins - b.raceMins);
+            
+            let html = '<table class="table table-bordered text-center align-middle"><thead class="table-dark"><tr><th>Orario Gara</th><th>Gara / Serie</th><th>Apertura CR1</th><th>Apertura CR2</th><th>Ingresso Pista</th><th>Stato</th></tr></thead><tbody>';
+            
+            rowsData.forEach(item => {
+                const { raceMins, timeStr, subTimeNote, nameHtml, o } = item;
                 const cr1Mins = raceMins - o.cr1;
                 const cr2Mins = raceMins - o.cr2;
                 const trackMins = raceMins - o.track;
@@ -503,11 +590,11 @@
                 }
                 
                 html += `<tr class="${rowClass}">
-                    <td class="fw-bold fs-5">${r.scheduledTime}</td>
-                    <td class="text-start fw-bold">${r.name}</td>
-                    <td>${formatTime(cr1Mins)} <br><small class="text-muted">(-${o.cr1}')</small></td>
-                    <td>${formatTime(cr2Mins)} <br><small class="text-muted">(-${o.cr2}')</small></td>
-                    <td>${formatTime(trackMins)} <br><small class="text-muted">(-${o.track}')</small></td>
+                    <td class="fw-bold fs-5">${timeStr}${subTimeNote ? `<br><small class="text-muted fw-normal" style="font-size:0.75rem;">${subTimeNote}</small>` : ''}</td>
+                    <td class="text-start">${nameHtml}</td>
+                    <td>${formatMinsToTime(cr1Mins)} <br><small class="text-muted">(-${o.cr1}')</small></td>
+                    <td>${formatMinsToTime(cr2Mins)} <br><small class="text-muted">(-${o.cr2}')</small></td>
+                    <td>${formatMinsToTime(trackMins)} <br><small class="text-muted">(-${o.track}')</small></td>
                     <td class="fw-bold">${stato}</td>
                 </tr>`;
             });
@@ -563,12 +650,32 @@
 
         async function showRace(index, btn) {
             clearActiveNav();
+            activeRaceIndex = index;
             if(btn) btn.classList.add('active');
             
             const race = currentMeeting.data[index];
             const field = isFieldEvent(race.nome_gara);
             const middleDist = isMiddleDistance(race.nome_gara);
-            const estTime = estimateDuration(race.nome_gara, race.numero_iscritti, middleDist, null);
+            
+            let savedTrackObj = null;
+            const savedDataStr = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
+            if (savedDataStr) {
+                try { savedTrackObj = JSON.parse(savedDataStr); } catch(e) {}
+            }
+            
+            let savedFieldObj = null;
+            const savedFieldStr = localStorage.getItem('field_data_' + currentMeeting.id + '_' + index);
+            if (savedFieldStr) {
+                try { savedFieldObj = JSON.parse(savedFieldStr); } catch(e) {}
+            }
+            
+            const estTime = estimateDuration(
+                race.nome_gara,
+                race.numero_iscritti,
+                middleDist,
+                savedTrackObj && savedTrackObj.heats ? savedTrackObj.heats.length : null,
+                savedTrackObj ? savedTrackObj.heatInterval : null
+            );
             
             const raceDb = await db.races.get(currentMeeting.id + '_' + race.nome_gara);
             const schedTime = raceDb ? raceDb.scheduledTime : '';
@@ -576,10 +683,10 @@
             let html = `<div class="d-flex justify-content-between align-items-center">
                 <h2>${race.nome_gara}</h2>
                 <div>
-                    <span id="est-time-${index}" class="badge bg-info fs-6 me-2">ÔÅ▒ Stima: ${Math.round(estTime)} min</span>
+                    <span id="est-time-${index}" class="badge bg-info fs-6 me-2">⏱ Stima: ${Math.round(estTime)} min</span>
                     <div class="input-group input-group-sm d-inline-flex w-auto d-print-none">
-                        <span class="input-group-text">Orario:</span>
-                        <input type="time" class="form-control" id="sched-time-${index}" value="${schedTime}" onchange="saveRaceTime(\`${race.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this)">
+                        <span class="input-group-text">Orario (1ª Serie/Gara):</span>
+                        <input type="time" class="form-control" id="sched-time-${index}" value="${schedTime}" onchange="saveRaceTime(\`${race.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this, ${index})">
                     </div>
                 </div>
             </div><hr>`;
@@ -593,22 +700,38 @@
             if (field) {
                 const lower = race.nome_gara.toLowerCase();
                 const vertical = lower.includes('alto') || lower.includes('asta');
+                const selMethod = savedFieldObj && savedFieldObj.method ? savedFieldObj.method : 'inverse';
+                const selGroups = savedFieldObj && savedFieldObj.numGroups ? parseInt(savedFieldObj.numGroups) : 1;
+                const selProg = savedFieldObj && savedFieldObj.progression ? savedFieldObj.progression : '';
+                
                 html += `
                 <div class="card p-3 mb-4 d-print-none">
                     <h5>Impostazioni Pedana (WA TR 25 ${vertical ? '& TR 26' : ''})</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Criterio Ordine di Partenza:</label>
-                        <select id="field-order-${index}" class="form-select">
-                            <option value="inverse">Ordine Inverso di Accredito (Consigliato Finali)</option>
-                            <option value="random">Ordine Casuale (Consigliato Qualificazioni)</option>
-                        </select>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Criterio Ordine di Partenza:</label>
+                            <select id="field-order-${index}" class="form-select">
+                                <option value="inverse" ${selMethod === 'inverse' ? 'selected' : ''}>Ordine Inverso di Accredito (Consigliato Finali)</option>
+                                <option value="random" ${selMethod === 'random' ? 'selected' : ''}>Ordine Casuale (Consigliato Qualificazioni)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Suddivisione in Gruppi (per Fasce di Accredito):</label>
+                            <select id="field-groups-${index}" class="form-select">
+                                <option value="1" ${selGroups === 1 ? 'selected' : ''}>Gruppo Unico (${race.numero_iscritti} atleti)</option>
+                                <option value="2" ${selGroups === 2 ? 'selected' : ''}>2 Gruppi — Gruppo A (Migliori) e Gruppo B (~${Math.ceil(race.numero_iscritti/2)} atl./gruppo)</option>
+                                <option value="3" ${selGroups === 3 ? 'selected' : ''}>3 Gruppi — Gruppi A, B, C per fasce (~${Math.ceil(race.numero_iscritti/3)} atl./gruppo)</option>
+                                <option value="4" ${selGroups === 4 ? 'selected' : ''}>4 Gruppi — Gruppi A, B, C, D per fasce (~${Math.ceil(race.numero_iscritti/4)} atl./gruppo)</option>
+                            </select>
+                            <small class="text-muted">Divide gli iscritti per fasce di accredito (Gruppo A i migliori, Gruppo B i successivi, ecc.) su fogli gara separati.</small>
+                        </div>
                     </div>`;
                     
                 if (vertical) {
                     html += `
                     <div class="mb-3">
                         <label class="form-label">Progressione Misure (TR 26.1):</label>
-                        <input type="text" id="progression-${index}" class="form-control" placeholder="Es. 1.80 1.85 1.90 1.93" onkeyup="validateProgression(this, '${race.nome_gara.replace(/'/g, "\\'")}')">
+                        <input type="text" id="progression-${index}" class="form-control" value="${selProg}" placeholder="Es. 1.80 1.85 1.90 1.93" onkeyup="validateProgression(this, '${race.nome_gara.replace(/'/g, "\'")}')">
                         <div id="progression-feedback-${index}" class="form-text">Inserisci le misure separate da spazio o virgola. Saranno stampate sul foglio gara.</div>
                     </div>`;
                 }
@@ -618,32 +741,46 @@
                 <div id="results-${index}"></div>
                 `;
             } else {
+                const defaultLanesVal = savedTrackObj && savedTrackObj.lanesInputStr
+                    ? savedTrackObj.lanesInputStr
+                    : (middleDist ? '12' : '1,2,3,4,5,6');
+                const defaultIntervalVal = savedTrackObj && savedTrackObj.heatInterval
+                    ? savedTrackObj.heatInterval
+                    : getMinutesPerHeat(race.nome_gara);
+                
                 html += `
                 <div class="card p-3 mb-4 d-print-none">
                     <h5>Impostazioni Batterie/Serie (WA TR 20)</h5>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">${middleDist ? 'Atleti Max per serie:' : 'Corsie attive (es. 1,2,3,4,5,6):'}</label>
-                            <input type="text" id="lanes-${index}" class="form-control" value="${middleDist ? '12' : '1,2,3,4,5,6'}">
-                            <small class="text-muted">${middleDist ? 'Massimo consigliato per mezzofondo: 12-15' : 'Elenca le corsie utilizzabili separate da virgola (es. 2,3,4,5,6,7,8 se la 1 ├¿ rotta)'}</small>
+                            <input type="text" id="lanes-${index}" class="form-control" value="${defaultLanesVal}">
+                            <small class="text-muted">${middleDist ? 'Massimo consigliato per mezzofondo: 12-15' : 'Elenca le corsie utilizzabili separate da virgola (es. 2,3,4,5,6,7,8 se la 1 è rotta)'}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Intervallo tra le serie (minuti):</label>
+                            <input type="number" id="heat-interval-${index}" class="form-control" min="1" max="120" value="${defaultIntervalVal}">
+                            <small class="text-muted">Minuti tra una serie e la successiva per esplodere gli orari in Call Room e sul Foglio Gara.</small>
                         </div>
                     </div>
-                    <button class="btn btn-primary" onclick="generateTrack(${index}, ${middleDist})">Genera Serie (Zig-Zag)</button>
+                    <button class="btn btn-primary" onclick="generateTrack(${index}, ${middleDist})">Genera Serie e Orari Call Room (Zig-Zag)</button>
                 </div>
                 <div id="results-${index}"></div>
                 `;
             }
             document.getElementById('main-content').innerHTML = html;
 
-            
-            // Re-render tracks if data exists
-            const savedData = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
-            if (savedData) {
-                // To be implemented via the original build_dashboard logic
+            if (field) {
+                const savedFieldHtml = localStorage.getItem('race_' + currentMeeting.id + '_' + index);
+                if (savedFieldHtml) {
+                    document.getElementById('results-' + index).innerHTML = savedFieldHtml;
+                }
+            } else if (savedDataStr) {
+                renderTrackHeats(index);
             }
         }
 
-                        window.saveRaceTime = async function(name, timeVal, inputElem) {
+        window.saveRaceTime = async function(name, timeVal, inputElem, raceIndex) {
             name = name.replace(/&apos;/g, "'");
             const r = await db.races.get(currentMeeting.id + '_' + name);
             if(r) {
@@ -652,6 +789,9 @@
             }
             if(inputElem && inputElem.nextElementSibling) {
                 inputElem.nextElementSibling.textContent = timeVal || '--:--';
+            }
+            if (raceIndex !== undefined && !isFieldEvent(name)) {
+                renderTrackHeats(raceIndex);
             }
         }
 
@@ -786,15 +926,7 @@ function timeToSeconds(t) {
             return parseFloat(t) || 999999;
         }
 
-        function isFieldEvent(name) {
-            const lower = name.toLowerCase();
-            return ['salto', 'lungo', 'alto', 'asta', 'triplo', 'peso', 'disco', 'martello', 'giavellotto', 'vortex'].some(k => lower.includes(k));
-        }
-        
-        function isMiddleDistance(name) {
-            const lower = name.toLowerCase();
-            return ['600', '800', '1000', '1200', '1500', '2000', '3000', '5000', '10000', 'siepi', 'marcia'].some(k => lower.includes(k));
-        }
+
 
         function validateProgression(inputElement, raceName) {
             const feedback = inputElement.nextElementSibling;
@@ -842,7 +974,7 @@ function timeToSeconds(t) {
                 }
                 if (diffCm > lastInc) {
                     valid = false;
-                    errorMsg = `Errore TR 26.1: L'incremento non pu├▓ aumentare. Precedente: ${lastInc}cm, Nuovo: ${diffCm}cm.`;
+                    errorMsg = `Errore TR 26.1: L'incremento non può aumentare. Precedente: ${lastInc}cm, Nuovo: ${diffCm}cm.`;
                     break;
                 }
                 lastInc = diffCm;
@@ -854,7 +986,7 @@ function timeToSeconds(t) {
                 inputElement.classList.add('is-invalid');
                 inputElement.classList.remove('is-valid');
             } else {
-                feedback.innerHTML = "Progressione a norma WA TR 26.1 Ô£à";
+                feedback.innerHTML = "Progressione a norma WA TR 26.1 ✅";
                 feedback.className = "form-text text-success";
                 inputElement.classList.remove('is-invalid');
                 inputElement.classList.add('is-valid');
@@ -878,34 +1010,21 @@ function timeToSeconds(t) {
             return 15;
         }
 
-        function estimateDuration(nomeGara, iscrittiCount, isMiddle, heatsCount) {
-            const lower = nomeGara.toLowerCase();
-            if (isFieldEvent(nomeGara)) {
-                if (lower.includes('asta')) return iscrittiCount * 3 + 15;
-                if (lower.includes('alto')) return iscrittiCount * 2 + 10;
-                return Math.ceil(iscrittiCount * 1.5) + 15;
-            }
-            
-            let assumedHeats = heatsCount;
-            if (!assumedHeats) {
-                assumedHeats = Math.ceil(iscrittiCount / (isMiddle ? 12 : 6));
-            }
-            
-            if (lower.includes('10000') || lower.includes('marcia 10')) return assumedHeats * 40;
-            if (lower.includes('5000') || lower.includes('marcia 5')) return assumedHeats * 22;
-            if (lower.includes('3000') || lower.includes('siepi')) return assumedHeats * 15;
-            if (lower.includes('1500') || lower.includes('miglio')) return assumedHeats * 8;
-            if (lower.includes('800') || lower.includes('1000')) return assumedHeats * 6;
-            if (lower.includes('400')) return assumedHeats * 5;
-            return assumedHeats * 4; // 100, 200, ostacoli, staffette
-        }
+
 
 
 
         
         window.printAttrezzi = function(index) {
             const race = currentMeeting.data[index];
-            const iscritti = [...race.iscritti].sort((a,b) => a.nominativo.localeCompare(b.nominativo));
+            const savedFieldStr = localStorage.getItem('field_data_' + currentMeeting.id + '_' + index);
+            let groups = null;
+            if (savedFieldStr) {
+                try {
+                    const fd = JSON.parse(savedFieldStr);
+                    if (fd.groups && fd.groups.length > 1) groups = fd.groups;
+                } catch(e) {}
+            }
             
             let phtml = `<html><head><title>Foglio Controllo Attrezzi - ${race.nome_gara}</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -925,8 +1044,12 @@ function timeToSeconds(t) {
                         <h4 class="text-primary">${race.nome_gara}</h4>
                     </div>
                     <button class="btn btn-primary btn-lg d-print-none" onclick="window.print()">🖨️ Stampa Foglio</button>
-                </div>
-                <table class="table table-bordered table-striped">
+                </div>`;
+                
+            const renderAttrezziTable = (list, groupTitle) => {
+                const sorted = [...list].sort((a,b) => a.nominativo.localeCompare(b.nominativo));
+                let tbl = groupTitle ? `<h5 class="mt-3 mb-2 fw-bold text-dark">${groupTitle}</h5>` : '';
+                tbl += `<table class="table table-bordered table-striped">
                     <thead class="table-dark">
                         <tr>
                             <th width="5%">Pett.</th>
@@ -938,18 +1061,32 @@ function timeToSeconds(t) {
                         </tr>
                     </thead>
                     <tbody>`;
-            iscritti.forEach(a => {
-                phtml += `
-                <tr>
-                    <td class="fw-bold text-center">${a.pettorale || ''}</td>
-                    <td class="fw-bold">${a.nominativo}</td>
-                    <td><small>${a.societa || ''}</small></td>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
-                </tr>`;
-            });
-            phtml += `</tbody></table>
+                sorted.forEach(a => {
+                    tbl += `
+                    <tr>
+                        <td class="fw-bold text-center">${a.pettorale || ''}</td>
+                        <td class="fw-bold">${a.nominativo}</td>
+                        <td><small>${a.societa || ''}</small></td>
+                        <td class="empty-cell"></td>
+                        <td class="empty-cell"></td>
+                        <td class="empty-cell"></td>
+                    </tr>`;
+                });
+                tbl += `</tbody></table>`;
+                return tbl;
+            };
+            
+            if (groups && groups.length > 1) {
+                groups.forEach((grp, gIdx) => {
+                    const letter = String.fromCharCode(65 + gIdx);
+                    if (gIdx > 0) phtml += `<div style="page-break-before: always;" class="mt-4"></div>`;
+                    phtml += renderAttrezziTable(grp, `Gruppo ${letter} (Fascia ${gIdx + 1} — ${grp.length} atleti)`);
+                });
+            } else {
+                phtml += renderAttrezziTable(race.iscritti, null);
+            }
+            
+            phtml += `
                 <div class="mt-5">
                     <p><strong>Firma Direttore Tecnico:</strong> ___________________________________</p>
                 </div>
@@ -960,78 +1097,134 @@ function timeToSeconds(t) {
             win.document.close();
         }
 
+        function parseAccreditoFloat(str) {
+            if (!str) return -1;
+            const cleaned = String(str).replace(',', '.').trim();
+            const v = parseFloat(cleaned);
+            return isNaN(v) ? -1 : v;
+        }
+
         function generateField(index) {
             const race = currentMeeting.data[index];
             const method = document.getElementById(`field-order-${index}`).value;
+            const groupsEl = document.getElementById(`field-groups-${index}`);
+            const numGroups = groupsEl ? (parseInt(groupsEl.value) || 1) : 1;
             const lower = race.nome_gara.toLowerCase();
             const isVertical = lower.includes('alto') || lower.includes('asta');
+            const progInput = document.getElementById(`progression-${index}`);
+            const progValue = progInput ? progInput.value.trim() : '';
             
-            let iscritti = [...race.iscritti].map(i => ({...i, val: parseFloat(i.accredito) || -1}));
+            let allAthletes = [...race.iscritti].map(i => ({...i, val: parseAccreditoFloat(i.accredito)}));
             
-            if (method === 'inverse') {
-                iscritti.sort((a, b) => a.val - b.val); // lowest to highest (highest jumps last)
+            // Split into groups by accreditation tiers (Gruppo A = best marks, Gruppo B = next tier, etc.)
+            let groups = [];
+            if (numGroups > 1 && allAthletes.length > 1) {
+                // Sort best to worst first (highest val first; -1 goes to the end)
+                allAthletes.sort((a, b) => b.val - a.val);
+                const actualGroups = Math.min(numGroups, allAthletes.length);
+                const baseSize = Math.floor(allAthletes.length / actualGroups);
+                const extra = allAthletes.length % actualGroups;
+                let cursor = 0;
+                for (let g = 0; g < actualGroups; g++) {
+                    const size = baseSize + (g < extra ? 1 : 0);
+                    groups.push(allAthletes.slice(cursor, cursor + size));
+                    cursor += size;
+                }
             } else {
-                iscritti.sort(() => Math.random() - 0.5);
+                groups = [allAthletes];
             }
             
+            // Apply starting order inside each group
+            groups.forEach(grp => {
+                if (method === 'inverse') {
+                    grp.sort((a, b) => a.val - b.val); // lowest to highest inside the group (best jumps/throws last)
+                } else {
+                    grp.sort(() => Math.random() - 0.5);
+                }
+            });
+            
+            localStorage.setItem('field_data_' + currentMeeting.id + '_' + index, JSON.stringify({
+                numGroups: groups.length,
+                method,
+                progression: progValue,
+                groups
+            }));
+            
             let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
-                <h4>Foglio Gara (Start List)</h4>
+                <h4>Foglio Gara (Start List)${groups.length > 1 ? ` — ${groups.length} Gruppi per Fasce di Accredito` : ''}</h4>
                 <div>
                     <button class="btn btn-outline-primary btn-sm me-2" onclick="printAttrezzi(${index})">🛠️ Foglio Attrezzi (DT)</button>
                     <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨️ Stampa</button>
                 </div>
-            </div>
-            <table class="table table-bordered table-sm" style="font-size: 0.85rem;">
-                <thead class="table-light">`;
-                
+            </div>`;
+            
             let progCols = 10;
-            if (isVertical) {
-                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Societ├á</th><th width="5%">SB</th>`;
-                const progInput = document.getElementById(`progression-${index}`);
-                let measuresArray = [];
-                if (progInput && progInput.value.trim() !== '') {
-                    measuresArray = progInput.value.replace(/,/g, ' ').split(/\s+/).filter(x=>x);
-                    progCols = Math.max(10, measuresArray.length + 2);
-                }
-                for(let i=0; i<progCols; i++) {
-                    const m = measuresArray[i] || '';
-                    html += `<th>${m}</th>`;
-                }
-                html += `<th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
-            } else {
-                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Societ├á</th><th width="5%">SB</th>
-                <th width="7%">1┬░</th><th width="7%">2┬░</th><th width="7%">3┬░</th><th width="7%">4┬░</th><th width="7%">5┬░</th><th width="7%">6┬░</th>
-                <th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
+            let measuresArray = [];
+            if (isVertical && progValue !== '') {
+                measuresArray = progValue.replace(/,/g, ' ').split(/\s+/).filter(x=>x);
+                progCols = Math.max(10, measuresArray.length + 2);
             }
             
-            iscritti.forEach((a, i) => {
-                const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
-                html += `<tr>
-                    <td><strong>${i+1}</strong></td>
-                    <td>${a.pettorale}</td>
-                    <td>${athleteName}</td>
-                    <td><small>${a.societa.substring(0,20)}</small></td>
-                    <td>${a.accredito}</td>`;
-                
-                if (isVertical) {
-                    for(let attempt=0; attempt<progCols; attempt++) {
-                        html += `<td></td>`;
-                    }
-                    html += `<td></td><td></td>`;
-                } else {
-                    for(let attempt=1; attempt<=3; attempt++) {
-                        html += `<td></td>`;
-                    }
-                    html += `<td class="table-light"></td>`; // Migliore 3 prove
-                    for(let attempt=4; attempt<=6; attempt++) {
-                        html += `<td></td>`;
-                    }
-                    html += `<td></td><td></td>`; // Misura finale e Pos
+            groups.forEach((grp, gIdx) => {
+                const groupLetter = String.fromCharCode(65 + gIdx);
+                if (gIdx > 0) {
+                    html += `<div style="page-break-before: always;" class="mt-4"></div>`;
+                }
+                if (groups.length > 1) {
+                    const validVals = grp.filter(a => a.val > 0).map(a => a.accredito);
+                    const rangeInfo = validVals.length > 0 ? ` — Accrediti: ${validVals[0]} ÷ ${validVals[validVals.length - 1]}` : '';
+                    html += `
+                    <div class="d-flex justify-content-between align-items-center mt-3 mb-2 p-2 bg-light border rounded">
+                        <h5 class="mb-0 text-primary fw-bold">${race.nome_gara} — Gruppo ${groupLetter} (${gIdx === 0 ? '1ª Fascia - Migliori Accrediti' : `${gIdx + 1}ª Fascia`}${rangeInfo})</h5>
+                        <span class="badge bg-dark">${grp.length} Atleti</span>
+                    </div>`;
                 }
                 
-                html += `</tr>`;
+                html += `<table class="table table-bordered table-sm" style="font-size: 0.85rem;">
+                    <thead class="table-light">`;
+                
+                if (isVertical) {
+                    html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Società</th><th width="5%">SB</th>`;
+                    for(let i=0; i<progCols; i++) {
+                        const m = measuresArray[i] || '';
+                        html += `<th>${m}</th>`;
+                    }
+                    html += `<th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
+                } else {
+                    html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Società</th><th width="5%">SB</th>
+                    <th width="7%">1°</th><th width="7%">2°</th><th width="7%">3°</th><th class="table-light" width="7%">Migl. 3</th><th width="7%">4°</th><th width="7%">5°</th><th width="7%">6°</th>
+                    <th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
+                }
+                
+                grp.forEach((a, i) => {
+                    const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
+                    html += `<tr>
+                        <td><strong>${i+1}</strong></td>
+                        <td>${a.pettorale}</td>
+                        <td>${athleteName}</td>
+                        <td><small>${(a.societa || '').substring(0,20)}</small></td>
+                        <td>${a.accredito}</td>`;
+                    
+                    if (isVertical) {
+                        for(let attempt=0; attempt<progCols; attempt++) {
+                            html += `<td></td>`;
+                        }
+                        html += `<td></td><td></td>`;
+                    } else {
+                        for(let attempt=1; attempt<=3; attempt++) {
+                            html += `<td></td>`;
+                        }
+                        html += `<td class="table-light"></td>`;
+                        for(let attempt=4; attempt<=6; attempt++) {
+                            html += `<td></td>`;
+                        }
+                        html += `<td></td><td></td>`;
+                    }
+                    
+                    html += `</tr>`;
+                });
+                html += `</tbody></table>`;
             });
-            html += `</tbody></table>`;
             
             document.getElementById(`results-${index}`).innerHTML = html;
             localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
@@ -1040,6 +1233,8 @@ function timeToSeconds(t) {
         function generateTrack(index, isMiddle) {
             const race = currentMeeting.data[index];
             const lanesInputStr = document.getElementById(`lanes-${index}`).value;
+            const intervalInputEl = document.getElementById(`heat-interval-${index}`);
+            const heatInterval = intervalInputEl ? (parseInt(intervalInputEl.value) || getMinutesPerHeat(race.nome_gara)) : getMinutesPerHeat(race.nome_gara);
             
             let activeLanes = [];
             let maxLanes = 6;
@@ -1074,13 +1269,13 @@ function timeToSeconds(t) {
                 }
             });
             
-            const raceData = { heats, isMiddle, maxLanes, activeLanes };
+            const raceData = { heats, isMiddle, maxLanes, activeLanes, lanesInputStr, heatInterval };
             localStorage.setItem('race_data_' + currentMeeting.id + '_' + index, JSON.stringify(raceData));
             
             const badge = document.getElementById(`est-time-${index}`);
             if (badge) {
-                const updatedTime = estimateDuration(race.nome_gara, total, isMiddle, heatsCount);
-                badge.textContent = `ÔÅ▒ Stima: ${Math.round(updatedTime)} min`;
+                const updatedTime = estimateDuration(race.nome_gara, total, isMiddle, heatsCount, heatInterval);
+                badge.textContent = `⏱ Stima: ${Math.round(updatedTime)} min`;
             }
             
             renderTrackHeats(index);
@@ -1115,166 +1310,62 @@ function timeToSeconds(t) {
             const maxLanes = raceData.maxLanes;
             const activeLanes = raceData.activeLanes || Array.from({length: maxLanes}, (_,i)=>i+1);
             const heatsCount = heats.length;
+            const heatInterval = parseInt(raceData.heatInterval) || getMinutesPerHeat(race.nome_gara);
             
-            let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
-                <h4>Composizione Serie (${heatsCount} Serie Generate)</h4>
-                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">­ƒû¿ Stampa</button>
-            </div>`;
+            const schedInput = document.getElementById(`sched-time-${index}`);
+            const schedTime = schedInput ? schedInput.value : '';
             
-            // Preferred lanes for standard sprint
-            const pref6 = [3, 4, 5, 6, 2, 1];
-            const pref8 = [4, 5, 3, 6, 2, 7, 1, 8];
-            const pref9 = [5, 6, 4, 7, 3, 8, 2, 9, 1];
+            const getOff = (k, def) => parseInt(localStorage.getItem(k) || def);
+            const cr1Off = getOff('cr1_corse', 30);
+            const cr2Off = getOff('cr2_corse', 20);
+            const trackOff = getOff('track_corse', 10);
             
-            let basePref = pref6;
-            const maxActive = Math.max(...activeLanes);
-            if (maxActive > 6) basePref = pref8;
-            if (maxActive > 8) basePref = pref9;
-            
-            // Filter basePref by activeLanes
-            let pref = basePref.filter(l => activeLanes.includes(l));
-            activeLanes.forEach(l => {
-                if (!pref.includes(l)) pref.push(l); // fallback for unusual lanes
-            });
-            
-            heats.forEach((h, i) => {
-                html += `<div class="mt-4" style="page-break-inside: avoid;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5>Serie ${i+1}</h5>
-                    </div>
-                    <table class="table table-bordered table-sm">
-                    <thead class="table-light"><tr><th>${isMiddle ? 'Pos' : 'Corsia'}</th><th>Pett</th><th>Atleta</th><th>Societ├á</th><th>SB</th><th width="15%">Risultato</th><th width="5%">Pos</th><th class="d-print-none" width="10%">Sposta</th></tr></thead><tbody>`;
-                
-                if (!isMiddle) {
-                    // Assign lanes
-                    h.forEach((a, j) => {
-                        a.lane = pref[j] || '-';
-                    });
-                    h.sort((a,b) => (a.lane === '-' ? 99 : a.lane) - (b.lane === '-' ? 99 : b.lane));
-                } else {
-                    h.forEach((a, j) => {
-                        a.lane = j + 1;
-                    });
-                }
-                
-                h.forEach(a => {
-                    const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
-                    
-                    // Heat selector
-                    let selectHtml = `<select class="form-select form-select-sm" onchange="moveAthlete(${index}, ${i}, '${a.pettorale}', this)">`;
-                    for(let x=0; x<heatsCount; x++) {
-                        selectHtml += `<option value="${x}" ${x===i ? 'selected' : ''}>S ${x+1}</option>`;
-                    }
-                    selectHtml += `</select>`;
-                    
-                    html += `<tr><td><strong>${a.lane}</strong></td><td>${a.pettorale}</td><td>${athleteName}</td><td><small>${a.societa.substring(0,20)}</small></td><td>${a.accredito}</td><td></td><td></td><td class="d-print-none">${selectHtml}</td></tr>`;
-                });
-                
-                html += `</tbody></table></div>`;
-            });
-            
-            if (isMiddle) {
-                const numLaps = getLaps(race.nome_gara);
-                html += `<div style="page-break-before: always;" class="mt-5"></div>
-                <div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
-                    <h4 class="mt-4 text-primary">Foglio Contagiri (${race.nome_gara})</h4>
-                    <div>
-                        <a href="https://matteomircoli.it/contagiristatico/garav2.html" target="_blank" class="btn btn-outline-success btn-sm mt-4 me-2">ÔÅ▒ Contagiri Elettronico</a>
-                        <button class="btn btn-outline-primary btn-sm mt-4" onclick="window.print()">­ƒû¿ Stampa Foglio Cartaceo</button>
-                    </div>
-                </div>
-                `;
-                const lapStyleEl = document.getElementById('lap-style-' + index);
-                const lapStyle = lapStyleEl ? lapStyleEl.value : 'normal';
-
-                html += `<h4 class="mt-4 d-none d-print-block">Foglio Contagiri - ${race.nome_gara}</h4>`;
-
-                if (lapStyle === 'normal') {
-                    html += `
-                    <div class="d-print-none alert alert-info small"><strong>Stile Normale:</strong> Griglia vuota. Il giudice segna a mano il pettorale in base alla posizione (Pos).</div>`;
-                    
-                    heats.forEach((h, i) => {
-                        if (h.length === 0) return;
-                        html += `<div class="mt-4" style="page-break-inside: avoid;">
-                            <h5>Contagiri - Serie ${i+1}</h5>
-                            <table class="table table-bordered table-sm text-center" style="font-size: 0.8rem;">
-                            <thead class="table-light"><tr><th width="5%">Pos</th><th width="10%">Pettorale</th>`;
-                        for(let lap=numLaps; lap>=2; lap--) {
-                            html += `<th>-${lap}</th>`;
-                        }
-                        html += `<th>ARRIVO</th></tr></thead><tbody>`;
-                        
-                        const numRows = h.length + 3;
-                        for (let row = 1; row <= numRows; row++) {
-                            html += `<tr><td><strong>${row}┬░</strong></td><td></td>`;
-                            for(let lap=1; lap<=numLaps; lap++) {
-                                html += `<td></td>`;
-                            }
-                            html += `</tr>`;
-                        }
-                        
-                        html += `</tbody></table></div>`;
-                    });
-                } else {
-                    html += `
-                    <div class="d-print-none alert alert-info small"><strong>Stile World Athletics:</strong> Griglia precompilata con Pettorali/Nomi. Il giudice spunta il giro al passaggio dell'atleta.</div>`;
-                    
-                    heats.forEach((h, i) => {
-                        if (h.length === 0) return;
-                        const sortedH = [...h].sort((a,b) => (a.pettorale || '999').localeCompare(b.pettorale || '999'));
-                        
-                        html += `<div class="mt-4" style="page-break-inside: avoid;">
-                            <h5>Contagiri - Serie ${i+1}</h5>
-                            <table class="table table-bordered table-sm text-center align-middle" style="font-size: 0.8rem;">
-                            <thead class="table-light"><tr><th width="8%">Pett.</th><th width="15%">Atleta</th>`;
-                        for(let lap=numLaps; lap>=2; lap--) {
-                            html += `<th>-${lap}</th>`;
-                        }
-                        html += `<th>ARRIVO</th></tr></thead><tbody>`;
-                        
-                        sortedH.forEach(a => {
-                            html += `<tr>
-                                <td class="fw-bold">${a.pettorale || ''}</td>
-                                <td class="text-start">${a.nominativo}<br><small class="text-muted">${a.societa || ''}</small></td>`;
-                            for(let lap=1; lap<=numLaps; lap++) {
-                                html += `<td></td>`;
-                            }
-                            html += `</tr>`;
-                        });
-                        
-                        for(let ex=0; ex<3; ex++) {
-                            html += `<tr><td></td><td></td>`;
-                            for(let lap=1; lap<=numLaps; lap++) {
-                                html += `<td></td>`;
-                            }
-                            html += `</tr>`;
-                        }
-                        
-                        html += `</tbody></table></div>`;
-                    });
-                }
+            let baseRaceMins = null;
+            if (schedTime && schedTime.includes(':')) {
+                const [hh, mm] = schedTime.split(':').map(Number);
+                baseRaceMins = hh * 60 + mm;
             }
             
-            document.getElementById(`results-${index}`).innerHTML = html;
-            localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
-        }
-
-        function renderTrackHeats(index) {
-            const race = currentMeeting.data[index];
-            const raceDataStr = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
-            if (!raceDataStr) return;
-            
-            const raceData = JSON.parse(raceDataStr);
-            const heats = raceData.heats;
-            const isMiddle = raceData.isMiddle;
-            const maxLanes = raceData.maxLanes;
-            const activeLanes = raceData.activeLanes || Array.from({length: maxLanes}, (_,i)=>i+1);
-            const heatsCount = heats.length;
-            
             let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
-                <h4>Composizione Serie (${heatsCount} Serie Generate)</h4>
-                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨 Stampa</button>
+                <h4>Composizione Serie (${heatsCount} Serie Generate — ${isMiddle ? `Max ${maxLanes} atl./serie` : `${activeLanes.length} corsie attive`})</h4>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨️ Stampa</button>
             </div>`;
+            
+            if (baseRaceMins !== null) {
+                html += `
+                <div class="card border-primary mb-4">
+                    <div class="card-header bg-primary text-white fw-bold py-2 d-flex justify-content-between align-items-center">
+                        <span>🕒 Orari Esplosi Call Room & Partenza per Serie (Intervallo: ${heatInterval} min)</span>
+                        <span class="badge bg-light text-dark">1ª Serie: ${schedTime}</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-bordered text-center align-middle mb-0" style="font-size: 0.85rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Serie</th>
+                                    <th>Atleti</th>
+                                    <th>Apertura CR1 (-${cr1Off}')</th>
+                                    <th>Uscita CR2 (-${cr2Off}')</th>
+                                    <th>Ingresso Pista (-${trackOff}')</th>
+                                    <th>Orario Partenza</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                heats.forEach((h, i) => {
+                    const hMins = baseRaceMins + (i * heatInterval);
+                    html += `<tr>
+                        <td class="fw-bold">Serie ${i+1}</td>
+                        <td>${h.length}</td>
+                        <td class="table-info">${formatMinsToTime(hMins - cr1Off)}</td>
+                        <td class="table-danger">${formatMinsToTime(hMins - cr2Off)}</td>
+                        <td class="table-warning">${formatMinsToTime(hMins - trackOff)}</td>
+                        <td class="table-success fw-bold fs-6">${formatMinsToTime(hMins)}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table></div></div>`;
+            } else {
+                html += `<div class="alert alert-warning py-2 small d-print-none">💡 <strong>Suggerimento Call Room:</strong> Inserisci l'<strong>Orario (1ª Serie/Gara)</strong> in alto a destra per esplodere automaticamente gli orari di Call Room (CR1, CR2, Ingresso Pista) e di partenza per ciascuna delle ${heatsCount} serie.</div>`;
+            }
             
             // Preferred lanes for standard sprint
             const pref6 = [3, 4, 5, 6, 2, 1];
@@ -1293,9 +1384,22 @@ function timeToSeconds(t) {
             });
             
             heats.forEach((h, i) => {
+                let heatTimingBadges = '';
+                if (baseRaceMins !== null) {
+                    const hMins = baseRaceMins + (i * heatInterval);
+                    heatTimingBadges = `
+                        <div>
+                            <span class="badge bg-info text-dark me-1">CR1: ${formatMinsToTime(hMins - cr1Off)}</span>
+                            <span class="badge bg-danger me-1">CR2: ${formatMinsToTime(hMins - cr2Off)}</span>
+                            <span class="badge bg-warning text-dark me-1">Pista: ${formatMinsToTime(hMins - trackOff)}</span>
+                            <span class="badge bg-dark fs-6">🕒 Partenza: ${formatMinsToTime(hMins)}</span>
+                        </div>`;
+                }
+                
                 html += `<div class="mt-4" style="page-break-inside: avoid;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5>Serie ${i+1}</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h5 class="mb-0">Serie ${i+1} <small class="text-muted">(${h.length} atleti)</small></h5>
+                        ${heatTimingBadges}
                     </div>
                     <table class="table table-bordered table-sm">
                     <thead class="table-light"><tr><th>${isMiddle ? 'Pos' : 'Corsia'}</th><th>Pett</th><th>Atleta</th><th>Società</th><th>SB</th><th width="15%">Risultato</th><th width="5%">Pos</th><th class="d-print-none" width="10%">Sposta</th></tr></thead><tbody>`;
@@ -1322,7 +1426,7 @@ function timeToSeconds(t) {
                     }
                     selectHtml += `</select>`;
                     
-                    html += `<tr><td><strong>${a.lane}</strong></td><td>${a.pettorale}</td><td>${athleteName}</td><td><small>${a.societa.substring(0,20)}</small></td><td>${a.accredito}</td><td></td><td></td><td class="d-print-none">${selectHtml}</td></tr>`;
+                    html += `<tr><td><strong>${a.lane}</strong></td><td>${a.pettorale}</td><td>${athleteName}</td><td><small>${(a.societa || '').substring(0,20)}</small></td><td>${a.accredito}</td><td></td><td></td><td class="d-print-none">${selectHtml}</td></tr>`;
                 });
                 
                 html += `</tbody></table></div>`;
@@ -1335,7 +1439,7 @@ function timeToSeconds(t) {
                     <h4 class="mt-4 text-primary">Foglio Contagiri (${race.nome_gara})</h4>
                     <div>
                         <a href="https://matteomircoli.it/contagiristatico/garav2.html" target="_blank" class="btn btn-outline-success btn-sm mt-4 me-2">⏱ Contagiri Elettronico</a>
-                        <button class="btn btn-outline-primary btn-sm mt-4" onclick="window.print()">🖨 Stampa Foglio Cartaceo</button>
+                        <button class="btn btn-outline-primary btn-sm mt-4" onclick="window.print()">🖨️ Stampa Foglio Cartaceo</button>
                     </div>
                 </div>
                 `;
@@ -1413,363 +1517,7 @@ function timeToSeconds(t) {
             document.getElementById(`results-${index}`).innerHTML = html;
             localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
         }
-    
-        window.printAttrezzi = function(index) {
-            const race = currentMeeting.data[index];
-            const iscritti = [...race.iscritti].sort((a,b) => a.nominativo.localeCompare(b.nominativo));
-            
-            let phtml = `<html><head><title>Foglio Controllo Attrezzi - ${race.nome_gara}</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-            <style>
-                body { font-family: Arial, sans-serif; padding: 20px; }
-                @media print {
-                    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                    .d-print-none { display: none !important; }
-                }
-                th, td { vertical-align: middle !important; }
-                .empty-cell { min-width: 80px; }
-            </style>
-            </head><body>
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h3>Modulo Controllo Attrezzi Personali (Direttore Tecnico)</h3>
-                        <h4 class="text-primary">${race.nome_gara}</h4>
-                    </div>
-                    <button class="btn btn-primary btn-lg d-print-none" onclick="window.print()">🖨️ Stampa Foglio</button>
-                </div>
-                <table class="table table-bordered table-striped">
-                    <thead class="table-dark">
-                        <tr>
-                            <th width="5%">Pett.</th>
-                            <th width="25%">Atleta</th>
-                            <th width="25%">Società</th>
-                            <th width="15%">Marca Attrezzo</th>
-                            <th width="15%">Colore</th>
-                            <th width="15%">Peso / Note</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-            iscritti.forEach(a => {
-                phtml += `
-                <tr>
-                    <td class="fw-bold text-center">${a.pettorale || ''}</td>
-                    <td class="fw-bold">${a.nominativo}</td>
-                    <td><small>${a.societa || ''}</small></td>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
-                </tr>`;
-            });
-            phtml += `</tbody></table>
-                <div class="mt-5">
-                    <p><strong>Firma Direttore Tecnico:</strong> ___________________________________</p>
-                </div>
-            </body></html>`;
-            
-            const win = window.open('', '_blank');
-            win.document.write(phtml);
-            win.document.close();
-        }
 
-        function generateField(index) {
-            const race = currentMeeting.data[index];
-            const method = document.getElementById(`field-order-${index}`).value;
-            const lower = race.nome_gara.toLowerCase();
-            const isVertical = lower.includes('alto') || lower.includes('asta');
-            
-            let iscritti = [...race.iscritti].map(i => ({...i, val: parseFloat(i.accredito) || -1}));
-            
-            if (method === 'inverse') {
-                iscritti.sort((a, b) => a.val - b.val); // lowest to highest (highest jumps last)
-            } else {
-                iscritti.sort(() => Math.random() - 0.5);
-            }
-            
-            let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
-                <h4>Foglio Gara (Start List)</h4>
-                <div>
-                    <button class="btn btn-outline-primary btn-sm me-2" onclick="printAttrezzi(${index})">🛠️ Foglio Attrezzi (DT)</button>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨️ Stampa</button>
-                </div>
-            </div>
-            <table class="table table-bordered table-sm" style="font-size: 0.85rem;">
-                <thead class="table-light">`;
-                
-            let progCols = 10;
-            if (isVertical) {
-                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Societ├á</th><th width="5%">SB</th>`;
-                const progInput = document.getElementById(`progression-${index}`);
-                let measuresArray = [];
-                if (progInput && progInput.value.trim() !== '') {
-                    measuresArray = progInput.value.replace(/,/g, ' ').split(/\s+/).filter(x=>x);
-                    progCols = Math.max(10, measuresArray.length + 2);
-                }
-                for(let i=0; i<progCols; i++) {
-                    const m = measuresArray[i] || '';
-                    html += `<th>${m}</th>`;
-                }
-                html += `<th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
-            } else {
-                html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Societ├á</th><th width="5%">SB</th>
-                <th width="7%">1┬░</th><th width="7%">2┬░</th><th width="7%">3┬░</th><th width="7%">4┬░</th><th width="7%">5┬░</th><th width="7%">6┬░</th>
-                <th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
-            }
-            
-            iscritti.forEach((a, i) => {
-                const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
-                html += `<tr>
-                    <td><strong>${i+1}</strong></td>
-                    <td>${a.pettorale}</td>
-                    <td>${athleteName}</td>
-                    <td><small>${a.societa.substring(0,20)}</small></td>
-                    <td>${a.accredito}</td>`;
-                
-                if (isVertical) {
-                    for(let attempt=0; attempt<progCols; attempt++) {
-                        html += `<td></td>`;
-                    }
-                    html += `<td></td><td></td>`;
-                } else {
-                    for(let attempt=1; attempt<=3; attempt++) {
-                        html += `<td></td>`;
-                    }
-                    html += `<td class="table-light"></td>`; // Migliore 3 prove
-                    for(let attempt=4; attempt<=6; attempt++) {
-                        html += `<td></td>`;
-                    }
-                    html += `<td></td><td></td>`; // Misura finale e Pos
-                }
-                
-                html += `</tr>`;
-            });
-            html += `</tbody></table>`;
-            
-            document.getElementById(`results-${index}`).innerHTML = html;
-            localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
-        }
-
-        function generateTrack(index, isMiddle) {
-            const race = currentMeeting.data[index];
-            const lanesInputStr = document.getElementById(`lanes-${index}`).value;
-            
-            let activeLanes = [];
-            let maxLanes = 6;
-            
-            if (isMiddle) {
-                maxLanes = parseInt(lanesInputStr) || 12;
-            } else {
-                activeLanes = lanesInputStr.replace(/[^0-9,]/g, '').split(',').map(Number).filter(x => x > 0);
-                if (activeLanes.length === 0) activeLanes = [1,2,3,4,5,6];
-                maxLanes = activeLanes.length;
-            }
-            
-            let iscritti = [...race.iscritti].map(i => ({...i, val: timeToSeconds(i.accredito)}));
-            iscritti.sort((a, b) => a.val - b.val); // fastest first
-            
-            const total = iscritti.length;
-            const heatsCount = Math.ceil(total / maxLanes);
-            
-            const heats = Array.from({length: heatsCount}, () => []);
-            let dir = 1;
-            let current = 0;
-            
-            // Zig zag distribution
-            iscritti.forEach(a => {
-                heats[current].push(a);
-                if (dir === 1) {
-                    if (current < heatsCount - 1) current++;
-                    else dir = -1;
-                } else {
-                    if (current > 0) current--;
-                    else dir = 1;
-                }
-            });
-            
-            const raceData = { heats, isMiddle, maxLanes, activeLanes };
-            localStorage.setItem('race_data_' + currentMeeting.id + '_' + index, JSON.stringify(raceData));
-            
-            const badge = document.getElementById(`est-time-${index}`);
-            if (badge) {
-                const updatedTime = estimateDuration(race.nome_gara, total, isMiddle, heatsCount);
-                badge.textContent = `ÔÅ▒ Stima: ${Math.round(updatedTime)} min`;
-            }
-            
-            renderTrackHeats(index);
-        }
-
-        function moveAthlete(index, fromHeat, pettorale, toHeatSelect) {
-            const toHeat = parseInt(toHeatSelect.value);
-            if (fromHeat === toHeat) return;
-            
-            let raceData = JSON.parse(localStorage.getItem('race_data_' + currentMeeting.id + '_' + index));
-            let heats = raceData.heats;
-            
-            // Find athlete
-            let athleteIndex = heats[fromHeat].findIndex(a => a.pettorale === pettorale);
-            if (athleteIndex > -1) {
-                const athlete = heats[fromHeat].splice(athleteIndex, 1)[0];
-                heats[toHeat].push(athlete);
-                
-                localStorage.setItem('race_data_' + currentMeeting.id + '_' + index, JSON.stringify(raceData));
-                renderTrackHeats(index);
-            }
-        }
-
-        function renderTrackHeats(index) {
-            const race = currentMeeting.data[index];
-            const raceDataStr = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
-            if (!raceDataStr) return;
-            
-            const raceData = JSON.parse(raceDataStr);
-            const heats = raceData.heats;
-            const isMiddle = raceData.isMiddle;
-            const maxLanes = raceData.maxLanes;
-            const activeLanes = raceData.activeLanes || Array.from({length: maxLanes}, (_,i)=>i+1);
-            const heatsCount = heats.length;
-            
-            let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
-                <h4>Composizione Serie (${heatsCount} Serie Generate)</h4>
-                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">­ƒû¿ Stampa</button>
-            </div>`;
-            
-            // Preferred lanes for standard sprint
-            const pref6 = [3, 4, 5, 6, 2, 1];
-            const pref8 = [4, 5, 3, 6, 2, 7, 1, 8];
-            const pref9 = [5, 6, 4, 7, 3, 8, 2, 9, 1];
-            
-            let basePref = pref6;
-            const maxActive = Math.max(...activeLanes);
-            if (maxActive > 6) basePref = pref8;
-            if (maxActive > 8) basePref = pref9;
-            
-            // Filter basePref by activeLanes
-            let pref = basePref.filter(l => activeLanes.includes(l));
-            activeLanes.forEach(l => {
-                if (!pref.includes(l)) pref.push(l); // fallback for unusual lanes
-            });
-            
-            heats.forEach((h, i) => {
-                html += `<div class="mt-4" style="page-break-inside: avoid;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5>Serie ${i+1}</h5>
-                    </div>
-                    <table class="table table-bordered table-sm">
-                    <thead class="table-light"><tr><th>${isMiddle ? 'Pos' : 'Corsia'}</th><th>Pett</th><th>Atleta</th><th>Societ├á</th><th>SB</th><th width="15%">Risultato</th><th width="5%">Pos</th><th class="d-print-none" width="10%">Sposta</th></tr></thead><tbody>`;
-                
-                if (!isMiddle) {
-                    // Assign lanes
-                    h.forEach((a, j) => {
-                        a.lane = pref[j] || '-';
-                    });
-                    h.sort((a,b) => (a.lane === '-' ? 99 : a.lane) - (b.lane === '-' ? 99 : b.lane));
-                } else {
-                    h.forEach((a, j) => {
-                        a.lane = j + 1;
-                    });
-                }
-                
-                h.forEach(a => {
-                    const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
-                    
-                    // Heat selector
-                    let selectHtml = `<select class="form-select form-select-sm" onchange="moveAthlete(${index}, ${i}, '${a.pettorale}', this)">`;
-                    for(let x=0; x<heatsCount; x++) {
-                        selectHtml += `<option value="${x}" ${x===i ? 'selected' : ''}>S ${x+1}</option>`;
-                    }
-                    selectHtml += `</select>`;
-                    
-                    html += `<tr><td><strong>${a.lane}</strong></td><td>${a.pettorale}</td><td>${athleteName}</td><td><small>${a.societa.substring(0,20)}</small></td><td>${a.accredito}</td><td></td><td></td><td class="d-print-none">${selectHtml}</td></tr>`;
-                });
-                
-                html += `</tbody></table></div>`;
-            });
-            
-            if (isMiddle) {
-                const numLaps = getLaps(race.nome_gara);
-                html += `<div style="page-break-before: always;" class="mt-5"></div>
-                <div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
-                    <h4 class="mt-4 text-primary">Foglio Contagiri (${race.nome_gara})</h4>
-                    <div>
-                        <a href="https://matteomircoli.it/contagiristatico/garav2.html" target="_blank" class="btn btn-outline-success btn-sm mt-4 me-2">ÔÅ▒ Contagiri Elettronico</a>
-                        <button class="btn btn-outline-primary btn-sm mt-4" onclick="window.print()">­ƒû¿ Stampa Foglio Cartaceo</button>
-                    </div>
-                </div>
-                `;
-                const lapStyleEl = document.getElementById('lap-style-' + index);
-                const lapStyle = lapStyleEl ? lapStyleEl.value : 'normal';
-
-                html += `<h4 class="mt-4 d-none d-print-block">Foglio Contagiri - ${race.nome_gara}</h4>`;
-
-                if (lapStyle === 'normal') {
-                    html += `
-                    <div class="d-print-none alert alert-info small"><strong>Stile Normale:</strong> Griglia vuota. Il giudice segna a mano il pettorale in base alla posizione (Pos).</div>`;
-                    
-                    heats.forEach((h, i) => {
-                        if (h.length === 0) return;
-                        html += `<div class="mt-4" style="page-break-inside: avoid;">
-                            <h5>Contagiri - Serie ${i+1}</h5>
-                            <table class="table table-bordered table-sm text-center" style="font-size: 0.8rem;">
-                            <thead class="table-light"><tr><th width="5%">Pos</th><th width="10%">Pettorale</th>`;
-                        for(let lap=numLaps; lap>=2; lap--) {
-                            html += `<th>-${lap}</th>`;
-                        }
-                        html += `<th>ARRIVO</th></tr></thead><tbody>`;
-                        
-                        const numRows = h.length + 3;
-                        for (let row = 1; row <= numRows; row++) {
-                            html += `<tr><td><strong>${row}┬░</strong></td><td></td>`;
-                            for(let lap=1; lap<=numLaps; lap++) {
-                                html += `<td></td>`;
-                            }
-                            html += `</tr>`;
-                        }
-                        
-                        html += `</tbody></table></div>`;
-                    });
-                } else {
-                    html += `
-                    <div class="d-print-none alert alert-info small"><strong>Stile World Athletics:</strong> Griglia precompilata con Pettorali/Nomi. Il giudice spunta il giro al passaggio dell'atleta.</div>`;
-                    
-                    heats.forEach((h, i) => {
-                        if (h.length === 0) return;
-                        const sortedH = [...h].sort((a,b) => (a.pettorale || '999').localeCompare(b.pettorale || '999'));
-                        
-                        html += `<div class="mt-4" style="page-break-inside: avoid;">
-                            <h5>Contagiri - Serie ${i+1}</h5>
-                            <table class="table table-bordered table-sm text-center align-middle" style="font-size: 0.8rem;">
-                            <thead class="table-light"><tr><th width="8%">Pett.</th><th width="15%">Atleta</th>`;
-                        for(let lap=numLaps; lap>=2; lap--) {
-                            html += `<th>-${lap}</th>`;
-                        }
-                        html += `<th>ARRIVO</th></tr></thead><tbody>`;
-                        
-                        sortedH.forEach(a => {
-                            html += `<tr>
-                                <td class="fw-bold">${a.pettorale || ''}</td>
-                                <td class="text-start">${a.nominativo}<br><small class="text-muted">${a.societa || ''}</small></td>`;
-                            for(let lap=1; lap<=numLaps; lap++) {
-                                html += `<td></td>`;
-                            }
-                            html += `</tr>`;
-                        });
-                        
-                        for(let ex=0; ex<3; ex++) {
-                            html += `<tr><td></td><td></td>`;
-                            for(let lap=1; lap<=numLaps; lap++) {
-                                html += `<td></td>`;
-                            }
-                            html += `</tr>`;
-                        }
-                        
-                        html += `</tbody></table></div>`;
-                    });
-                }
-            }
-            
-            document.getElementById(`results-${index}`).innerHTML = html;
-            localStorage.setItem('race_' + currentMeeting.id + '_' + index, html);
-        }
-    
         </script>
 </body>
 </html>
