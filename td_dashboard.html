@@ -219,7 +219,18 @@
             }
         };
         window.saveProgressionConfig = function(index, val) {
-            saveFieldConfig(index, { progression: (val || '').trim() });
+            const cleanVal = (val || '').trim();
+            saveFieldConfig(index, { progression: cleanVal });
+            const badgeEl = document.getElementById('prog-print-badge-' + index);
+            if (badgeEl) {
+                if (cleanVal) {
+                    badgeEl.textContent = '📏 Progressione: ' + cleanVal;
+                    badgeEl.classList.remove('d-none');
+                } else {
+                    badgeEl.textContent = '';
+                    badgeEl.classList.add('d-none');
+                }
+            }
             if (activeRaceIndex === index && document.getElementById('results-' + index) && document.getElementById('results-' + index).innerHTML.trim() !== '') {
                 generateField(index);
             }
@@ -350,9 +361,19 @@
                     `;
                 } else if (isVerticalJump(r.nome_gara)) {
                     const fc = getFieldConfig(index);
-                    if (fc.progression) {
-                        extraRaceControls = `<div class="small text-muted fw-normal mt-1">📏 Prog: ${fc.progression}</div>`;
-                    }
+                    const progVal = fc.progression || '';
+                    const validVals = r.iscritti.map(i => parseAccreditoFloat(i.accredito)).filter(v => v > 0).sort((a,b) => a - b);
+                    const rangeHint = validVals.length > 0 ? ` (SB: ${validVals[0].toFixed(2)}÷${validVals[validVals.length-1].toFixed(2)})` : '';
+                    extraRaceControls = `
+                        <div class="mt-1 d-print-none fw-normal">
+                            <div class="d-flex align-items-center flex-wrap gap-1">
+                                <span class="badge bg-secondary">📏 Progressione${rangeHint}:</span>
+                                <input type="text" class="form-control form-control-sm" style="max-width: 260px;" placeholder="Es. 1.80 1.85 1.90 1.93" value="${progVal}" onkeyup="validateProgression(this, '${r.nome_gara.replace(/'/g, "\\'")}'); saveProgressionConfig(${index}, this.value)" onchange="saveProgressionConfig(${index}, this.value)" title="Progressione Misure (TR 26.1)">
+                                <span class="form-text small m-0"></span>
+                            </div>
+                        </div>
+                        <div id="prog-print-badge-${index}" class="${progVal ? '' : 'd-none'} small text-primary fw-bold mt-1">📏 Progressione: ${progVal}</div>
+                    `;
                 }
                 
                 table += `<tr>
