@@ -23,6 +23,7 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
    - Algoritmo a **Ordine Inverso** (i migliori SB saltano/lanciano per ultimi, ideale per le Finali).
    - **Suddivisione in più Gruppi per Fasce di Accredito (Novità)**: per i concorsi numerosi è possibile dividere la gara in 2, 3 o 4 Gruppi (Gruppo A con i migliori accrediti, Gruppo B con i successivi, ecc.), generando automaticamente fogli gara e fogli controllo attrezzi separati in stampa per ciascun gruppo.
    - **Validazione Progressioni (TR 26.1)** per Alto e Asta in tempo reale (incrementi di min 2cm/5cm senza mai aumentare).
+   - **Decisione Battute Salto Triplo (TR 30 - Novità)**: possibilità di impostare fino a 2 battute per le gare di Salto Triplo sia direttamente dalla Panoramica Meeting sia nella pagina della gara, con stampa automatica su Riepilogo, Foglio Gara e Dispositivo Tecnico.
 5. **Panoramica Avanzata e Timetable (Stima Durate)**
    - Stima automatica del **Timetable** per ogni gara in base agli iscritti, alle batterie necessarie e alla specialità.
    - **Inserimento Rapido Orari**: possibilità di inserire gli orari di gara direttamente dalla tabella riassuntiva nella Home Page (i dati si sincronizzeranno istantaneamente con la Call Room).
@@ -52,7 +53,7 @@ Un'applicazione locale stand-alone progettata per supportare i Delegati Tecnici 
   - Calcoli differenziati e simultanei in base alla specialità (es. le corse chiamano a -30', i lanci a -45', l'asta a -60').
   - Cruscotto intelligente con semafori colorati che indica lo stato live di ogni gara.
 - **Sincronizzazione SIGMA/WISE**: Cliccando il pulsante apposito, la Dashboard interroga in background la piattaforma federale: se una gara ha già i risultati pubblicati, verrà segnata come completata e depennata dalla Call Room in tempo reale.
-- **Appunti TD, Radio & Contatti**: Una sezione speciale persistente dove salvare appunti, decisioni del delegato, organigramma giurie, piano comunicazioni radio e i contatti rapidi (Medico e Organizzatore).
+- **Dispositivo Tecnico della Manifestazione (PDF) & Appunti Privati TD**: Gestione separata tra il **Dispositivo Tecnico pubblico** (con campo norme dedicato, sincronizzazione automatica di Orari Call Room, Progressioni Alto/Asta e Battute Triplo, firma con Nome del Delegato Tecnico in calce ed esportazione diretta in **PDF**) e gli **Appunti Privati del TD** (organigramma giurie, piano radio e contatti medico/organizzatore, esclusi dal PDF pubblico).
 
 ## 📥 Come Scaricare e Utilizzare il Tool
 

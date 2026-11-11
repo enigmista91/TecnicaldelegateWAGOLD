@@ -48,7 +48,7 @@
                 <div class="px-2" id="nav-general">
                     <button class="nav-link w-100 text-start btn btn-sm mb-1 active" onclick="showOverview()">📊 Panoramica Meeting</button>
                     <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showCallRoom()">⏱ Call Room Live</button>
-                    <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showNotes()">📝 Appunti TD & Radio</button>
+                    <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showNotes()">📝 Appunti & Dispositivo</button>
                     <button class="nav-link w-100 text-start btn btn-sm mb-1 text-primary fw-bold" onclick="syncWise()">🔄 Sincronizza WISE</button>
                     <button class="nav-link w-100 text-start btn btn-sm mb-1 text-success fw-bold" onclick="showShoeControl()">👟 Controllo Scarpe</button>
                     <button class="nav-link w-100 text-start btn btn-sm mb-1 text-danger fw-bold" onclick="showAthleteSearch()">🔍 Ricerca & Doping</button>
@@ -171,6 +171,54 @@
             const lower = name.toLowerCase();
             return ['salto', 'lungo', 'alto', 'asta', 'triplo', 'peso', 'disco', 'martello', 'giavellotto', 'vortex'].some(k => lower.includes(k));
         }
+        function isTripleJump(name) {
+            return name.toLowerCase().includes('triplo');
+        }
+        function isVerticalJump(name) {
+            const lower = name.toLowerCase();
+            return lower.includes('alto') || lower.includes('asta');
+        }
+        function getFieldConfig(index) {
+            const raw = localStorage.getItem('field_data_' + currentMeeting.id + '_' + index);
+            if (raw) {
+                try { return JSON.parse(raw); } catch(e) {}
+            }
+            return { numGroups: 1, method: 'inverse', progression: '', battuta1: '', battuta2: '', groups: null };
+        }
+        function saveFieldConfig(index, updates) {
+            const current = getFieldConfig(index);
+            const updated = Object.assign({}, current, updates);
+            localStorage.setItem('field_data_' + currentMeeting.id + '_' + index, JSON.stringify(updated));
+            return updated;
+        }
+        window.saveTripleJumpBoard = function(index, boardNum, val) {
+            const cleanVal = (val || '').trim();
+            const updates = boardNum === 1 ? { battuta1: cleanVal } : { battuta2: cleanVal };
+            const updated = saveFieldConfig(index, updates);
+            
+            // Update print badge in Overview if visible
+            const badgeEl = document.getElementById('tj-print-badge-' + index);
+            if (badgeEl) {
+                const boards = [updated.battuta1, updated.battuta2].filter(Boolean);
+                if (boards.length > 0) {
+                    badgeEl.textContent = '📐 Battute: ' + boards.join(' / ');
+                    badgeEl.classList.remove('d-none');
+                } else {
+                    badgeEl.textContent = '';
+                    badgeEl.classList.add('d-none');
+                }
+            }
+            // If currently on the race page and start list is generated, refresh it
+            if (activeRaceIndex === index && document.getElementById('results-' + index) && document.getElementById('results-' + index).innerHTML.trim() !== '') {
+                generateField(index);
+            }
+        };
+        window.saveProgressionConfig = function(index, val) {
+            saveFieldConfig(index, { progression: (val || '').trim() });
+            if (activeRaceIndex === index && document.getElementById('results-' + index) && document.getElementById('results-' + index).innerHTML.trim() !== '') {
+                generateField(index);
+            }
+        };
         function isMiddleDistance(name) {
             const lower = name.toLowerCase();
             return ['600', '800', '1000', '1200', '1500', 'miglio', '2000', '3000', 'siepi', '5000', '10000', 'marcia'].some(k => lower.includes(k));
@@ -281,6 +329,27 @@
                     statoHtml = `<span class="badge bg-success">✅ Conclusa</span>`;
                 }
                 
+                let extraRaceControls = '';
+                if (isTripleJump(r.nome_gara)) {
+                    const fc = getFieldConfig(index);
+                    const b1 = fc.battuta1 || '';
+                    const b2 = fc.battuta2 || '';
+                    const boardsStr = [b1, b2].filter(Boolean).join(' / ');
+                    extraRaceControls = `
+                        <div class="mt-1 d-flex align-items-center flex-wrap gap-1 d-print-none fw-normal">
+                            <span class="badge bg-secondary">📐 Battute (max 2):</span>
+                            <input type="text" class="form-control form-control-sm" style="width: 85px;" placeholder="1ª es. 11m" value="${b1}" onchange="saveTripleJumpBoard(${index}, 1, this.value)" title="1ª Battuta Salto Triplo">
+                            <input type="text" class="form-control form-control-sm" style="width: 85px;" placeholder="2ª es. 13m" value="${b2}" onchange="saveTripleJumpBoard(${index}, 2, this.value)" title="2ª Battuta Salto Triplo (opzionale)">
+                        </div>
+                        <div id="tj-print-badge-${index}" class="${boardsStr ? '' : 'd-none'} small text-primary fw-bold mt-1">📐 Battute: ${boardsStr}</div>
+                    `;
+                } else if (isVerticalJump(r.nome_gara)) {
+                    const fc = getFieldConfig(index);
+                    if (fc.progression) {
+                        extraRaceControls = `<div class="small text-muted fw-normal mt-1">📏 Prog: ${fc.progression}</div>`;
+                    }
+                }
+                
                 table += `<tr>
                     <td style="width: 120px;">
                         <input type="time" class="form-control form-control-sm d-print-none" value="${schedTime}" onchange="saveRaceTime(\`${r.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this)">
@@ -288,6 +357,7 @@
                     </td>
                     <td class="fw-bold">
                         <a href="#" onclick="showRace(${index}, null); return false;" class="text-decoration-none ${isComp ? 'text-success' : ''}">${r.nome_gara}</a>
+                        ${extraRaceControls}
                     </td>
                     <td>${r.numero_iscritti}</td><td>${field ? 'Concorsi' : 'Corse'}</td>
                     <td>${Math.round(duration)} min</td>
@@ -319,50 +389,406 @@
             clearActiveNav();
             document.querySelectorAll('#nav-general .nav-link')[2].classList.add('active');
             
-            const noteData = await db.notes.get(currentMeeting.id) || { meetingId: currentMeeting.id, text: '', orgChart: '', radioPlan: '', contactsOrg: '', contactsMed: '' };
+            const savedDefaultTdName = localStorage.getItem('default_td_name') || '';
+            const noteData = await db.notes.get(currentMeeting.id) || {
+                meetingId: currentMeeting.id,
+                text: '',
+                orgChart: '',
+                radioPlan: '',
+                contactsOrg: '',
+                contactsMed: '',
+                dispositivoText: '',
+                tdName: savedDefaultTdName
+            };
+            const tdNameVal = noteData.tdName !== undefined ? noteData.tdName : savedDefaultTdName;
+            
+            // Collect Triple Jump races and Vertical Jump races for automatic sync in Dispositivo Tecnico
+            let tripleJumpRowsHtml = '';
+            let verticalRowsHtml = '';
+            
+            currentMeeting.data.forEach((r, idx) => {
+                const fc = getFieldConfig(idx);
+                if (isTripleJump(r.nome_gara)) {
+                    tripleJumpRowsHtml += `
+                    <tr>
+                        <td class="fw-bold"><a href="#" onclick="showRace(${idx}, null); return false;" class="text-decoration-none">${r.nome_gara}</a> <small class="text-muted">(${r.numero_iscritti} iscr.)</small></td>
+                        <td><input type="text" class="form-control form-control-sm" placeholder="1ª Battuta (es. 11m)" value="${fc.battuta1 || ''}" onchange="saveTripleJumpBoard(${idx}, 1, this.value)"></td>
+                        <td><input type="text" class="form-control form-control-sm" placeholder="2ª Battuta opz. (es. 13m)" value="${fc.battuta2 || ''}" onchange="saveTripleJumpBoard(${idx}, 2, this.value)"></td>
+                    </tr>`;
+                }
+                if (isVerticalJump(r.nome_gara)) {
+                    verticalRowsHtml += `
+                    <tr>
+                        <td class="fw-bold" width="35%"><a href="#" onclick="showRace(${idx}, null); return false;" class="text-decoration-none">${r.nome_gara}</a> <small class="text-muted">(${r.numero_iscritti} iscr.)</small></td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" placeholder="Es. 1.80 1.85 1.90 1.93" value="${fc.progression || ''}" onkeyup="validateProgression(this, '${r.nome_gara.replace(/'/g, "\'")}'); saveProgressionConfig(${idx}, this.value)" onchange="saveProgressionConfig(${idx}, this.value)">
+                            <div class="form-text small text-muted">Separare le misure con spazio.</div>
+                        </td>
+                    </tr>`;
+                }
+            });
             
             document.getElementById('main-content').innerHTML = `
-                <h2>Appunti, Organigramma & Contatti</h2><hr>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Appunti e Decisioni del Delegato Tecnico</label>
-                        <textarea id="td-notes" class="form-control" rows="8" placeholder="Scrivi qui gli appunti...">${noteData.text || ''}</textarea>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Organigramma e Giurie</label>
-                        <textarea id="td-org" class="form-control" rows="8" placeholder="Es. Arbitro Pista: Mario Rossi...">${noteData.orgChart || ''}</textarea>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold text-danger">Contatti Medico di Servizio</label>
-                        <textarea id="td-med" class="form-control" rows="3" placeholder="Nome Medico e Telefono...">${noteData.contactsMed || ''}</textarea>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold text-primary">Contatti Organizzatore</label>
-                        <textarea id="td-org-contacts" class="form-control" rows="3" placeholder="Nome Organizzatore e Telefono...">${noteData.contactsOrg || ''}</textarea>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold">Piano Radio e Comunicazioni</label>
-                        <textarea id="td-radio" class="form-control" rows="3" placeholder="Es. CH 1: Direttore di Gara...">${noteData.radioPlan || ''}</textarea>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2>📋 Dispositivo Tecnico & 📝 Appunti TD</h2>
+                    <div>
+                        <button class="btn btn-success me-2" onclick="saveNotes()">💾 Salva Tutto</button>
+                        <button class="btn btn-primary fw-bold" onclick="exportDispositivoPDF()">📄 Esporta Dispositivo Tecnico (PDF)</button>
                     </div>
                 </div>
-                <button class="btn btn-success" onclick="saveNotes()">💾 Salva Modifiche</button>
-                <span id="note-save-feedback" class="ms-3 text-success d-none">Salvato!</span>
+                <span id="note-save-feedback" class="badge bg-success mb-2 d-none">Modifiche salvate con successo!</span>
+                <hr>
+                
+                <!-- SEZIONE PUBBLICA: DISPOSITIVO TECNICO DELLA MANIFESTAZIONE -->
+                <div class="card border-primary shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <span class="fw-bold fs-5">📋 Dispositivo Tecnico della Manifestazione (Documento Pubblico per PDF)</span>
+                        <span class="badge bg-light text-primary">Esportabile in PDF</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">
+                            Questa sezione genera il <strong>Dispositivo Tecnico ufficiale</strong> da distribuire a Società, Tecnici e Giurie.
+                            Le <strong>Progressioni</strong> dei salti in elevazione, le <strong>Battute del Salto Triplo</strong> e gli <strong>Orari di Call Room</strong> vengono riportati automaticamente dalle impostazioni delle gare (e puoi modificarli anche direttamente qui sotto). Gli appunti privati del TD in fondo alla pagina <strong>non</strong> verranno mai inclusi nel PDF.
+                        </p>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6 class="fw-bold text-primary">📐 Battute Salto Triplo (Max 2 per gara - Sincronizzate)</h6>
+                                ${tripleJumpRowsHtml ? `
+                                <table class="table table-sm table-bordered align-middle mb-0">
+                                    <thead class="table-light"><tr><th>Gara</th><th>1ª Battuta</th><th>2ª Battuta (Opz.)</th></tr></thead>
+                                    <tbody>${tripleJumpRowsHtml}</tbody>
+                                </table>` : `<div class="alert alert-light border py-2 small mb-0">Nessuna gara di Salto Triplo presente in questo meeting.</div>`}
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="fw-bold text-primary">📏 Progressioni Salti in Elevazione (Alto / Asta - Sincronizzate)</h6>
+                                ${verticalRowsHtml ? `
+                                <table class="table table-sm table-bordered align-middle mb-0">
+                                    <thead class="table-light"><tr><th>Gara</th><th>Progressione Misure (TR 26.1)</th></tr></thead>
+                                    <tbody>${verticalRowsHtml}</tbody>
+                                </table>` : `<div class="alert alert-light border py-2 small mb-0">Nessuna gara di Alto o Asta presente in questo meeting.</div>`}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold mb-0">Norme Tecniche e Disposizioni del Dispositivo Tecnico (Campo Pubblico):</label>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertDispositivoTemplate()">✨ Inserisci Modello Base Norme</button>
+                            </div>
+                            <textarea id="td-dispositivo" class="form-control" rows="8" placeholder="Inserisci qui le norme tecniche pubbliche della manifestazione (es. modalità conferma iscrizioni, consegna attrezzi personali al DT, norme qualificazioni/finali, controllo scarpe TR 5, ecc.)...">${noteData.dispositivoText || ''}</textarea>
+                        </div>
+                        
+                        <div class="row align-items-end">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">✍️ Nome e Cognome del Delegato Tecnico (riportato in calce al PDF):</label>
+                                <input type="text" id="td-name" class="form-control" placeholder="Es. Dott. Mario Rossi" value="${tdNameVal}">
+                            </div>
+                            <div class="col-md-6 text-end mt-3 mt-md-0">
+                                <button class="btn btn-primary" onclick="exportDispositivoPDF()">📄 Genera ed Esporta Dispositivo Tecnico in PDF</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SEZIONE PRIVATA: APPUNTI RISERVATI TD, ORGANIGRAMMA E CONTATTI -->
+                <div class="card border-secondary shadow-sm mb-4">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">🔒 Appunti Privati TD, Organigramma, Radio & Contatti</span>
+                        <span class="badge bg-warning text-dark">Uso Interno Riservato (Escluso dal PDF Pubblico)</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Appunti e Decisioni del Delegato Tecnico (Privati)</label>
+                                <textarea id="td-notes" class="form-control" rows="7" placeholder="Scrivi qui i tuoi appunti riservati, annotazioni per il rapporto finale, anomalie riscontrate...">${noteData.text || ''}</textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Organigramma e Giurie</label>
+                                <textarea id="td-org" class="form-control" rows="7" placeholder="Es. Direttore di Riunione, Arbitro Corse, Arbitro Concorsi, Direttore Tecnico...">${noteData.orgChart || ''}</textarea>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold text-danger">Contatti Medico di Servizio</label>
+                                <textarea id="td-med" class="form-control" rows="3" placeholder="Nome Medico e Telefono...">${noteData.contactsMed || ''}</textarea>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold text-primary">Contatti Organizzatore</label>
+                                <textarea id="td-org-contacts" class="form-control" rows="3" placeholder="Nome Organizzatore e Telefono...">${noteData.contactsOrg || ''}</textarea>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Piano Radio e Comunicazioni</label>
+                                <textarea id="td-radio" class="form-control" rows="3" placeholder="Es. CH 1: Direttore di Gara...">${noteData.radioPlan || ''}</textarea>
+                            </div>
+                        </div>
+                        <button class="btn btn-success" onclick="saveNotes()">💾 Salva Tutte le Modifiche</button>
+                    </div>
+                </div>
             `;
         }
 
+        window.insertDispositivoTemplate = function() {
+            const el = document.getElementById('td-dispositivo');
+            if (!el) return;
+            const template = `1. CONFERMA ISCRIZIONI E CALL ROOM
+Gli atleti dovranno presentarsi in Call Room nel rispetto degli orari indicati nella tabella tempi di chiamata, muniti di documento di identità o tessera federale e pettorale di gara.
+
+2. CONTROLLO SCARPE (REGOLA WA TR 5)
+In Call Room verrà effettuato il controllo delle calzature di gara secondo la Regola Tecnica WA TR 5 (spessore massimo suola 20 mm per tutte le gare in pista e concorsi, 25 mm per il Salto Triplo).
+
+3. CONSEGNA ATTREZZI PERSONALI (CONCORSI DI LANCIO)
+Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore Tecnico almeno 90 minuti prima dell'orario di inizio della rispettiva gara per le operazioni di verifica e punzonatura.
+
+4. SVOLGIMENTO GARE DI CORSA E CONCORSI
+- Corse: composizione delle serie in base agli accrediti secondo Regola TR 20.
+- Concorsi: ordine di partenza ed eventuale suddivisione in gruppi come da fogli gara ufficiali.`;
+            if (el.value.trim() === '' || confirm("Vuoi aggiungere il modello base al testo attuale del Dispositivo Tecnico?")) {
+                el.value = el.value.trim() ? (el.value.trim() + "\n\n" + template) : template;
+            }
+        };
+
         window.saveNotes = async function() {
+            const tdNameVal = document.getElementById('td-name') ? document.getElementById('td-name').value.trim() : '';
+            if (tdNameVal) {
+                localStorage.setItem('default_td_name', tdNameVal);
+            }
             await db.notes.put({
                 meetingId: currentMeeting.id,
-                text: document.getElementById('td-notes').value,
-                orgChart: document.getElementById('td-org').value,
-                radioPlan: document.getElementById('td-radio').value,
-                contactsOrg: document.getElementById('td-org-contacts').value,
-                contactsMed: document.getElementById('td-med').value
+                text: document.getElementById('td-notes') ? document.getElementById('td-notes').value : '',
+                orgChart: document.getElementById('td-org') ? document.getElementById('td-org').value : '',
+                radioPlan: document.getElementById('td-radio') ? document.getElementById('td-radio').value : '',
+                contactsOrg: document.getElementById('td-org-contacts') ? document.getElementById('td-org-contacts').value : '',
+                contactsMed: document.getElementById('td-med') ? document.getElementById('td-med').value : '',
+                dispositivoText: document.getElementById('td-dispositivo') ? document.getElementById('td-dispositivo').value : '',
+                tdName: tdNameVal
             });
             const fb = document.getElementById('note-save-feedback');
-            fb.classList.remove('d-none');
-            setTimeout(() => fb.classList.add('d-none'), 2000);
-        }
+            if (fb) {
+                fb.classList.remove('d-none');
+                setTimeout(() => fb.classList.add('d-none'), 2500);
+            }
+        };
+
+        window.exportDispositivoPDF = async function() {
+            await saveNotes();
+            const noteData = await db.notes.get(currentMeeting.id) || {};
+            const tdName = (noteData.tdName || localStorage.getItem('default_td_name') || '').trim();
+            const dispositivoText = (noteData.dispositivoText || '').trim();
+            
+            const getOff = (k, def) => parseInt(localStorage.getItem(k) || def);
+            const offsets = {
+                corse: { cr1: getOff('cr1_corse', 30), cr2: getOff('cr2_corse', 20), track: getOff('track_corse', 10) },
+                concorsi: { cr1: getOff('cr1_concorsi', 45), cr2: getOff('cr2_concorsi', 30), track: getOff('track_concorsi', 20) },
+                alto: { cr1: getOff('cr1_alto', 50), cr2: getOff('cr2_alto', 35), track: getOff('track_alto', 30) },
+                asta: { cr1: getOff('cr1_asta', 60), cr2: getOff('cr2_asta', 45), track: getOff('track_asta', 40) }
+            };
+            
+            const racesDb = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
+            const timeMap = {};
+            racesDb.forEach(r => { timeMap[r.name] = r.scheduledTime || ''; });
+            
+            let tripleJumpItems = [];
+            let verticalItems = [];
+            let groupedFieldItems = [];
+            
+            currentMeeting.data.forEach((r, idx) => {
+                const fc = getFieldConfig(idx);
+                const tStr = timeMap[r.nome_gara] ? ` (Ore ${timeMap[r.nome_gara]})` : '';
+                if (isTripleJump(r.nome_gara)) {
+                    const boards = [fc.battuta1, fc.battuta2].filter(Boolean);
+                    tripleJumpItems.push({
+                        name: r.nome_gara + tStr,
+                        iscritti: r.numero_iscritti,
+                        b1: fc.battuta1 || '-',
+                        b2: fc.battuta2 || '-',
+                        summary: boards.length > 0 ? boards.join('  /  ') : 'Da definire in pedana'
+                    });
+                }
+                if (isVerticalJump(r.nome_gara)) {
+                    verticalItems.push({
+                        name: r.nome_gara + tStr,
+                        iscritti: r.numero_iscritti,
+                        progression: fc.progression || 'Da definire in base agli accrediti confermati'
+                    });
+                }
+                if (fc.numGroups && fc.numGroups > 1) {
+                    groupedFieldItems.push({
+                        name: r.nome_gara + tStr,
+                        numGroups: fc.numGroups,
+                        iscritti: r.numero_iscritti
+                    });
+                }
+            });
+            
+            const safeNormeHtml = dispositivoText
+                ? dispositivoText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
+                : '<em>Secondo norme regolamentari vigenti FIDAL / World Athletics.</em>';
+                
+            const todayStr = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+            const safeFileName = ('Dispositivo_Tecnico_' + (currentMeeting.name || 'Meeting').replace(/[^a-zA-Z0-9_-]/g, '_')).substring(0, 60) + '.pdf';
+            
+            let phtml = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
+            <title>Dispositivo Tecnico - ${currentMeeting.name}</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>
+            <style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; background: #f4f6f9; padding: 20px; }
+                .doc-sheet { background: #fff; max-width: 210mm; margin: 0 auto; padding: 18mm 18mm 15mm 18mm; box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-radius: 4px; }
+                .doc-header { border-bottom: 3px solid #0d6efd; padding-bottom: 12px; margin-bottom: 20px; }
+                .section-title { font-size: 1.05rem; font-weight: 700; text-transform: uppercase; color: #0d6efd; border-left: 4px solid #0d6efd; padding-left: 10px; margin-top: 22px; margin-bottom: 10px; }
+                table th, table td { font-size: 0.9rem; vertical-align: middle !important; }
+                .norme-box { font-size: 0.95rem; line-height: 1.55; background: #fcfcfd; border: 1px solid #dee2e6; border-radius: 6px; padding: 14px 16px; }
+                .signature-block { margin-top: 45px; page-break-inside: avoid; }
+                @media print {
+                    body { background: #fff !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    .doc-sheet { box-shadow: none !important; max-width: 100% !important; padding: 5mm !important; margin: 0 !important; }
+                    .d-print-none { display: none !important; }
+                }
+            </style>
+            </head><body>
+                <div class="d-flex justify-content-center gap-3 mb-3 d-print-none">
+                    <button class="btn btn-danger btn-lg fw-bold shadow-sm" onclick="downloadPdfFile()">📥 Scarica File PDF</button>
+                    <button class="btn btn-primary btn-lg fw-bold shadow-sm" onclick="window.print()">🖨️ Stampa / Salva PDF</button>
+                </div>
+                
+                <div class="doc-sheet" id="dispositivo-content">
+                    <div class="doc-header d-flex justify-content-between align-items-end">
+                        <div>
+                            <div class="text-uppercase fw-bold text-secondary small">Federazione Italiana di Atletica Leggera / World Athletics Rules</div>
+                            <h2 class="fw-bold mb-1 text-dark">DISPOSITIVO TECNICO DELLA MANIFESTAZIONE</h2>
+                            <h4 class="text-primary mb-0">${currentMeeting.name}</h4>
+                        </div>
+                        <div class="text-end small text-muted">
+                            Data documento: <strong>${todayStr}</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="section-title">1. Tempistiche di Accesso in Call Room e Ingresso in Campo</div>
+                    <table class="table table-bordered table-sm text-center mb-3">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-start">Tipologia Gara</th>
+                                <th>Apertura Call Room (CR1)</th>
+                                <th>Chiusura / Uscita CR2</th>
+                                <th>Ingresso in Pista / Pedana</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-start fw-bold">Corse (Pista)</td>
+                                <td>-${offsets.corse.cr1} min</td>
+                                <td>-${offsets.corse.cr2} min</td>
+                                <td>-${offsets.corse.track} min</td>
+                            </tr>
+                            <tr>
+                                <td class="text-start fw-bold">Concorsi (Lanci e Salti in Estensione)</td>
+                                <td>-${offsets.concorsi.cr1} min</td>
+                                <td>-${offsets.concorsi.cr2} min</td>
+                                <td>-${offsets.concorsi.track} min</td>
+                            </tr>
+                            <tr>
+                                <td class="text-start fw-bold">Salto in Alto</td>
+                                <td>-${offsets.alto.cr1} min</td>
+                                <td>-${offsets.alto.cr2} min</td>
+                                <td>-${offsets.alto.track} min</td>
+                            </tr>
+                            <tr>
+                                <td class="text-start fw-bold">Salto con l'Asta</td>
+                                <td>-${offsets.asta.cr1} min</td>
+                                <td>-${offsets.asta.cr2} min</td>
+                                <td>-${offsets.asta.track} min</td>
+                            </tr>
+                        </tbody>
+                    </table>`;
+                    
+            if (verticalItems.length > 0) {
+                phtml += `
+                    <div class="section-title">2. Progressioni Salti in Elevazione (Regola Tecnica TR 26.1)</div>
+                    <table class="table table-bordered table-sm mb-3">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="38%">Gara</th>
+                                <th>Progressione Misure Stabilita</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+                verticalItems.forEach(v => {
+                    phtml += `
+                            <tr>
+                                <td class="fw-bold">${v.name}</td>
+                                <td class="fw-bold text-primary">${v.progression}</td>
+                            </tr>`;
+                });
+                phtml += `</tbody></table>`;
+            }
+            
+            if (tripleJumpItems.length > 0) {
+                phtml += `
+                    <div class="section-title">3. Battute Salto Triplo (Regola Tecnica TR 30)</div>
+                    <table class="table table-bordered table-sm mb-3">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="38%">Gara</th>
+                                <th width="31%" class="text-center">1ª Battuta</th>
+                                <th width="31%" class="text-center">2ª Battuta (Max 2)</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+                tripleJumpItems.forEach(tj => {
+                    phtml += `
+                            <tr>
+                                <td class="fw-bold">${tj.name}</td>
+                                <td class="text-center fw-bold text-primary">${tj.b1}</td>
+                                <td class="text-center fw-bold text-primary">${tj.b2}</td>
+                            </tr>`;
+                });
+                phtml += `</tbody></table>`;
+            }
+            
+            if (groupedFieldItems.length > 0) {
+                phtml += `
+                    <div class="section-title">Suddivisione Gruppi Concorsi</div>
+                    <ul class="mb-3">`;
+                groupedFieldItems.forEach(gf => {
+                    phtml += `<li><strong>${gf.name}</strong>: Gara suddivisa in <strong>${gf.numGroups} Gruppi</strong> per fasce di accredito (${gf.iscritti} iscritti totali).</li>`;
+                });
+                phtml += `</ul>`;
+            }
+            
+            phtml += `
+                    <div class="section-title">Norme Tecniche e Disposizioni del Delegato Tecnico</div>
+                    <div class="norme-box">${safeNormeHtml}</div>
+                    
+                    <div class="signature-block row justify-content-end">
+                        <div class="col-6 text-center">
+                            <p class="mb-1 fw-bold text-uppercase small text-secondary">Il Delegato Tecnico</p>
+                            <h5 class="fw-bold text-dark mb-4">${tdName || '___________________________________'}</h5>
+                            <div style="border-top: 1px solid #333; width: 75%; margin: 0 auto; padding-top: 4px;" class="small text-muted">Firma</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <script>
+                    function downloadPdfFile() {
+                        const element = document.getElementById('dispositivo-content');
+                        if (window.html2pdf) {
+                            const opt = {
+                                margin: [8, 8, 8, 8],
+                                filename: '${safeFileName}',
+                                image: { type: 'jpeg', quality: 0.98 },
+                                html2canvas: { scale: 2, useCORS: true },
+                                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                            };
+                            html2pdf().set(opt).from(element).save();
+                        } else {
+                            window.print();
+                        }
+                    }
+                <\/script>
+            </body></html>`;
+            
+            const win = window.open('', '_blank');
+            win.document.write(phtml);
+            win.document.close();
+        };
 
                 async function showCallRoom() {
             clearActiveNav();
@@ -700,13 +1126,16 @@
             if (field) {
                 const lower = race.nome_gara.toLowerCase();
                 const vertical = lower.includes('alto') || lower.includes('asta');
+                const triple = isTripleJump(race.nome_gara);
                 const selMethod = savedFieldObj && savedFieldObj.method ? savedFieldObj.method : 'inverse';
                 const selGroups = savedFieldObj && savedFieldObj.numGroups ? parseInt(savedFieldObj.numGroups) : 1;
                 const selProg = savedFieldObj && savedFieldObj.progression ? savedFieldObj.progression : '';
+                const selBatt1 = savedFieldObj && savedFieldObj.battuta1 ? savedFieldObj.battuta1 : '';
+                const selBatt2 = savedFieldObj && savedFieldObj.battuta2 ? savedFieldObj.battuta2 : '';
                 
                 html += `
                 <div class="card p-3 mb-4 d-print-none">
-                    <h5>Impostazioni Pedana (WA TR 25 ${vertical ? '& TR 26' : ''})</h5>
+                    <h5>Impostazioni Pedana (WA TR 25 ${vertical ? '& TR 26' : ''}${triple ? '& TR 30' : ''})</h5>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Criterio Ordine di Partenza:</label>
@@ -727,12 +1156,29 @@
                         </div>
                     </div>`;
                     
+                if (triple) {
+                    html += `
+                    <div class="row mb-3 p-2 bg-light border rounded mx-0">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-primary">📐 1ª Battuta Salto Triplo:</label>
+                            <input type="text" id="battuta1-${index}" class="form-control" value="${selBatt1}" placeholder="Es. 11m (o 9m)" onchange="saveTripleJumpBoard(${index}, 1, this.value)">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-primary">📐 2ª Battuta Salto Triplo (Opzionale - Max 2):</label>
+                            <input type="text" id="battuta2-${index}" class="form-control" value="${selBatt2}" placeholder="Es. 13m (lascia vuoto se battuta unica)" onchange="saveTripleJumpBoard(${index}, 2, this.value)">
+                        </div>
+                        <div class="col-12 mt-1">
+                            <small class="text-muted">Puoi impostare al massimo 2 battute. Saranno sincronizzate con la Panoramica, stampate sul Foglio Gara e riportate nel Dispositivo Tecnico.</small>
+                        </div>
+                    </div>`;
+                }
+                    
                 if (vertical) {
                     html += `
                     <div class="mb-3">
                         <label class="form-label">Progressione Misure (TR 26.1):</label>
-                        <input type="text" id="progression-${index}" class="form-control" value="${selProg}" placeholder="Es. 1.80 1.85 1.90 1.93" onkeyup="validateProgression(this, '${race.nome_gara.replace(/'/g, "\'")}')">
-                        <div id="progression-feedback-${index}" class="form-text">Inserisci le misure separate da spazio o virgola. Saranno stampate sul foglio gara.</div>
+                        <input type="text" id="progression-${index}" class="form-control" value="${selProg}" placeholder="Es. 1.80 1.85 1.90 1.93" onkeyup="validateProgression(this, '${race.nome_gara.replace(/'/g, "\\'")}'); saveFieldConfig(${index}, { progression: this.value.trim() })">
+                        <div id="progression-feedback-${index}" class="form-text">Inserisci le misure separate da spazio o virgola. Saranno stampate sul foglio gara e nel Dispositivo Tecnico.</div>
                     </div>`;
                 }
                     
@@ -1106,13 +1552,20 @@ function timeToSeconds(t) {
 
         function generateField(index) {
             const race = currentMeeting.data[index];
-            const method = document.getElementById(`field-order-${index}`).value;
+            const prevCfg = getFieldConfig(index);
+            const methodEl = document.getElementById(`field-order-${index}`);
+            const method = methodEl ? methodEl.value : (prevCfg.method || 'inverse');
             const groupsEl = document.getElementById(`field-groups-${index}`);
-            const numGroups = groupsEl ? (parseInt(groupsEl.value) || 1) : 1;
+            const numGroups = groupsEl ? (parseInt(groupsEl.value) || 1) : (prevCfg.numGroups || 1);
             const lower = race.nome_gara.toLowerCase();
             const isVertical = lower.includes('alto') || lower.includes('asta');
+            const isTriple = isTripleJump(race.nome_gara);
             const progInput = document.getElementById(`progression-${index}`);
-            const progValue = progInput ? progInput.value.trim() : '';
+            const progValue = progInput ? progInput.value.trim() : (prevCfg.progression || '');
+            const b1Input = document.getElementById(`battuta1-${index}`);
+            const b2Input = document.getElementById(`battuta2-${index}`);
+            const battuta1 = b1Input ? b1Input.value.trim() : (prevCfg.battuta1 || '');
+            const battuta2 = b2Input ? b2Input.value.trim() : (prevCfg.battuta2 || '');
             
             let allAthletes = [...race.iscritti].map(i => ({...i, val: parseAccreditoFloat(i.accredito)}));
             
@@ -1143,12 +1596,19 @@ function timeToSeconds(t) {
                 }
             });
             
-            localStorage.setItem('field_data_' + currentMeeting.id + '_' + index, JSON.stringify({
+            saveFieldConfig(index, {
                 numGroups: groups.length,
                 method,
                 progression: progValue,
+                battuta1,
+                battuta2,
                 groups
-            }));
+            });
+            
+            const activeBoards = [battuta1, battuta2].filter(Boolean);
+            const tripleBanner = isTriple
+                ? `<div class="alert alert-info py-2 mb-3"><strong>📐 Battute Salto Triplo (Max 2):</strong> ${activeBoards.length > 0 ? `<span class="badge bg-primary fs-6 ms-1">${activeBoards.join('</span> <span class="badge bg-primary fs-6 ms-1">')}</span>` : '<span class="text-muted">Nessuna battuta specificata</span>'}</div>`
+                : '';
             
             let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
                 <h4>Foglio Gara (Start List)${groups.length > 1 ? ` — ${groups.length} Gruppi per Fasce di Accredito` : ''}</h4>
@@ -1156,7 +1616,8 @@ function timeToSeconds(t) {
                     <button class="btn btn-outline-primary btn-sm me-2" onclick="printAttrezzi(${index})">🛠️ Foglio Attrezzi (DT)</button>
                     <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨️ Stampa</button>
                 </div>
-            </div>`;
+            </div>
+            ${tripleBanner}`;
             
             let progCols = 10;
             let measuresArray = [];
@@ -1191,19 +1652,20 @@ function timeToSeconds(t) {
                     }
                     html += `<th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
                 } else {
-                    html += `<tr><th width="5%">Ord</th><th width="5%">Pett</th><th width="20%">Atleta</th><th width="15%">Società</th><th width="5%">SB</th>
+                    html += `<tr><th width="4%">Ord</th><th width="5%">Pett</th><th width="${isTriple ? '18%' : '20%'}">Atleta</th><th width="14%">Società</th><th width="5%">SB</th>${isTriple ? '<th width="6%">Batt.</th>' : ''}
                     <th width="7%">1°</th><th width="7%">2°</th><th width="7%">3°</th><th class="table-light" width="7%">Migl. 3</th><th width="7%">4°</th><th width="7%">5°</th><th width="7%">6°</th>
-                    <th width="5%">Mis.</th><th width="5%">Pos</th></tr></thead><tbody>`;
+                    <th width="5%">Mis.</th><th width="4%">Pos</th></tr></thead><tbody>`;
                 }
                 
                 grp.forEach((a, i) => {
                     const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
+                    const defaultBoardCell = isTriple ? `<td class="text-center fw-bold">${activeBoards.length === 1 ? activeBoards[0] : ''}</td>` : '';
                     html += `<tr>
                         <td><strong>${i+1}</strong></td>
                         <td>${a.pettorale}</td>
                         <td>${athleteName}</td>
                         <td><small>${(a.societa || '').substring(0,20)}</small></td>
-                        <td>${a.accredito}</td>`;
+                        <td>${a.accredito}</td>${defaultBoardCell}`;
                     
                     if (isVertical) {
                         for(let attempt=0; attempt<progCols; attempt++) {
