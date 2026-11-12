@@ -1280,13 +1280,15 @@
                     endStr = formatMinsToTime(hh * 60 + mm + duration);
                 }
 
+                const safeRaceNameJs = r.nome_gara.replace(/'/g, '&apos;');
+                const toggleCompBtn = `<button type="button" class="btn btn-sm ${isComp ? 'btn-outline-secondary' : 'btn-outline-success'} py-0 px-2 ms-1 d-print-none" title="${isComp ? 'Riapri gara (segna come non conclusa)' : 'Segna gara come conclusa'}" onclick="toggleRaceCompleted(\`${safeRaceNameJs}\`)">${isComp ? '↩' : '✓'}</button>`;
                 let statoHtml = anomalies > 0
-                    ? `<span class="status-pill status-pill-warning">⚠️ ${anomalies} anom.</span>`
-                    : `<span class="status-pill status-pill-neutral">Pronta</span>`;
+                    ? `<span class="status-pill status-pill-warning">⚠️ ${anomalies} anom.</span>${toggleCompBtn}`
+                    : `<span class="status-pill status-pill-neutral">Pronta</span>${toggleCompBtn}`;
                 if (isComp && currentMeeting.resultsUrl) {
-                    statoHtml = `<a href="${currentMeeting.resultsUrl}" target="_blank" class="status-pill status-pill-success text-decoration-none">✅ Risultati</a>`;
+                    statoHtml = `<a href="${currentMeeting.resultsUrl}" target="_blank" class="status-pill status-pill-success text-decoration-none">✅ Risultati</a>${toggleCompBtn}`;
                 } else if (isComp) {
-                    statoHtml = `<span class="status-pill status-pill-success">✅ Conclusa</span>`;
+                    statoHtml = `<span class="status-pill status-pill-success">✅ Conclusa</span>${toggleCompBtn}`;
                 }
                 
                 let extraRaceControls = '';
@@ -2406,12 +2408,16 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                             ? `<small class="text-muted ms-1">(${heatAthletes[i]} atl.)</small>`
                             : (heatsCount > 1 ? `<small class="text-muted ms-1">(stima)</small>` : `<small class="text-muted ms-1">(${raceObj.numero_iscritti} atl.)</small>`);
                         
+                        const isLastHeat = (i === heatsCount - 1);
+                        const doneBtn = isLastHeat
+                            ? `<button type="button" class="btn btn-sm btn-outline-success py-0 px-2 ms-2 d-print-none" title="Segna gara come conclusa" onclick="toggleRaceCompleted(\`${r.name.replace(/'/g, '&apos;')}\`, 1)">✓ Fine</button>`
+                            : '';
                         rowsData.push({
                             raceDay,
                             raceMins: heatRaceMins,
                             timeStr: formatMinsToTime(heatRaceMins),
                             subTimeNote: heatsCount > 1 ? `Serie ${i+1} (+${i * heatInterval}')` : '',
-                            nameHtml: `${dayBadge}<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none fw-bold" style="color: var(--app-text);">${r.name}</a> ${subLabel} ${athInfo}`,
+                            nameHtml: `${dayBadge}<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none fw-bold" style="color: var(--app-text);">${r.name}</a> ${subLabel} ${athInfo}${doneBtn}`,
                             o
                         });
                     }
@@ -2428,14 +2434,15 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                             } catch(e) {}
                         }
                     }
+                    const doneBtn = `<button type="button" class="btn btn-sm btn-outline-success py-0 px-2 ms-2 d-print-none" title="Segna gara come conclusa" onclick="toggleRaceCompleted(\`${r.name.replace(/'/g, '&apos;')}\`, 1)">✓ Fine</button>`;
                     rowsData.push({
                         raceDay,
                         raceMins: baseRaceMins,
                         timeStr: r.scheduledTime,
                         subTimeNote: '',
                         nameHtml: raceIndex > -1
-                            ? `${dayBadge}<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none fw-bold" style="color: var(--app-text);">${r.name}</a> ${groupBadge}`
-                            : `${dayBadge}<span class="fw-bold">${r.name}</span>`,
+                            ? `${dayBadge}<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none fw-bold" style="color: var(--app-text);">${r.name}</a> ${groupBadge}${doneBtn}`
+                            : `${dayBadge}<span class="fw-bold">${r.name}</span>${doneBtn}`,
                         o
                     });
                 }
@@ -2530,50 +2537,354 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             }
         }
 
-        window.syncWise = async function() {
-            if (!currentMeeting.resultsUrl) {
-                alert("URL Risultati non trovato per questo meeting.");
-                return;
+        function cleanRaceBaseName(name) {
+            return (name || '')
+                .replace(/\s*-\s*(Lista\s*Partecipanti|Risultati|Serie| Turno\s*\d+|Finale|Qualificazioni).*/i, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toLowerCase();
+        }
+
+        window.toggleRaceCompleted = async function(raceName, forceState) {
+            raceName = raceName.replace(/&apos;/g, "'");
+            const r = await db.races.get(currentMeeting.id + '_' + raceName);
+            if (!r) return;
+            r.isCompleted = (forceState !== undefined) ? (forceState ? 1 : 0) : (r.isCompleted ? 0 : 1);
+            await db.races.put(r);
+            await buildSidebar();
+
+            if (document.getElementById('wise-sync-container')) {
+                await renderWiseChecklist();
+            } else if (document.getElementById('cr-table-container')) {
+                await renderCallRoomTable();
+            } else if (document.getElementById('gantt-chart-container')) {
+                await renderGanttChart();
+            } else if (document.getElementById('overview-tbody')) {
+                await showOverview();
             }
+        };
+
+        window.saveMeetingResultsUrl = async function() {
+            const inp = document.getElementById('wise-results-url');
+            if (!inp || !currentMeeting) return;
+            const newUrl = inp.value.trim();
+            currentMeeting.resultsUrl = newUrl;
+            await db.meetings.put(currentMeeting);
+            const fb = document.getElementById('wise-sync-feedback');
+            if (fb) {
+                fb.className = 'alert alert-success py-2 px-3 mb-3 small fw-bold';
+                fb.textContent = '✅ URL Risultati FIDAL salvato per questo meeting.';
+            }
+        };
+
+        window.pasteFromClipboardWise = async function() {
+            const ta = document.getElementById('wise-paste-input');
+            if (!ta) return;
             try {
-                // Try primary proxy
-                let proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(currentMeeting.resultsUrl);
-                let res = await fetch(proxyUrl);
-                if (!res.ok) throw new Error("Proxy error");
-                
-                let json = await res.json();
-                let htmlStr = json.contents;
-                if (!htmlStr) throw new Error("Risposta vuota");
-                
-                // Parse HTML
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlStr, "text/html");
-                const links = Array.from(doc.querySelectorAll('a')).map(a => a.textContent.trim());
-                
-                const races = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
-                let completedCount = 0;
-                
-                for (let r of races) {
-                    if (r.isCompleted) continue;
-                    if (links.some(l => l.includes(r.name) || r.name.includes(l) && l.length > 5)) {
-                        r.isCompleted = 1;
-                        await db.races.put(r);
-                        completedCount++;
-                    }
-                }
-                
-                alert(`Sincronizzazione completata! ${completedCount} nuove gare concluse.`);
-                await buildSidebar();
-                if (document.getElementById('cr-table-container')) {
-                    renderCallRoomTable();
-                } else if (document.getElementById('nav-general').querySelector('button.active')?.textContent.includes('Panoramica')) {
-                    showOverview();
+                const txt = await navigator.clipboard.readText();
+                if (txt) {
+                    ta.value = txt;
+                    await parseWiseContentAndSync();
+                } else {
+                    ta.focus();
                 }
             } catch (e) {
-                alert("Errore di rete o proxy bloccato dai sistemi anti-bot FIDAL (Cloudflare). Riprova piu' tardi o aggiorna manualmente. Dettaglio: " + e.message);
-                console.error(e);
+                ta.focus();
             }
-        }
+        };
+
+        window.handleWiseFileUpload = function(input) {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const ta = document.getElementById('wise-paste-input');
+                if (ta) ta.value = ev.target.result || '';
+                await parseWiseContentAndSync();
+            };
+            reader.readAsText(file);
+        };
+
+        window.parseWiseContentAndSync = async function() {
+            const ta = document.getElementById('wise-paste-input');
+            const fb = document.getElementById('wise-sync-feedback');
+            if (!ta || !currentMeeting) return;
+            const raw = ta.value.trim();
+            if (!raw) {
+                if (fb) {
+                    fb.className = 'alert alert-warning py-2 px-3 mb-3 small fw-bold';
+                    fb.textContent = '⚠️ Incolla prima il testo (Ctrl+A / Ctrl+C) o il codice HTML copiato dalla pagina risultati FIDAL.';
+                }
+                return;
+            }
+
+            // Extract candidate strings from HTML links/cells AND plain text lines
+            const candidates = [];
+            if (raw.includes('<a') || raw.includes('<table') || raw.includes('<html')) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(raw, 'text/html');
+                doc.querySelectorAll('a, td, li, h3, h4').forEach(el => {
+                    const t = (el.textContent || '').trim();
+                    if (t.length >= 4) candidates.push(t);
+                });
+            }
+            raw.split(/[\r\n\t]+/).forEach(line => {
+                const t = line.trim();
+                if (t.length >= 4) candidates.push(t);
+            });
+
+            const normCandidates = candidates.map(c => cleanRaceBaseName(c)).filter(c => c.length >= 4);
+            const fullRawNorm = raw.replace(/\s+/g, ' ').toLowerCase();
+
+            const races = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
+            let newlyCompleted = [];
+            let alreadyCompleted = 0;
+
+            for (const r of races) {
+                const baseName = cleanRaceBaseName(r.name);
+                if (!baseName || baseName.length < 3) continue;
+
+                const matched = normCandidates.some(c => c === baseName || c.includes(baseName) || (baseName.includes(c) && c.length >= 6))
+                    || fullRawNorm.includes(baseName);
+
+                if (matched) {
+                    if (!r.isCompleted) {
+                        r.isCompleted = 1;
+                        await db.races.put(r);
+                        newlyCompleted.push(r.name.replace(/\s*-\s*Lista Partecipanti/i, ''));
+                    } else {
+                        alreadyCompleted++;
+                    }
+                }
+            }
+
+            await buildSidebar();
+            await renderWiseChecklist();
+
+            if (fb) {
+                if (newlyCompleted.length > 0) {
+                    fb.className = 'alert alert-success py-2 px-3 mb-3 small fw-bold';
+                    fb.innerHTML = `✅ Sincronizzazione completata! <strong>${newlyCompleted.length} nuove gare segnate come concluse:</strong> ${newlyCompleted.join(', ')}${alreadyCompleted ? ` (${alreadyCompleted} erano già concluse)` : ''}.`;
+                } else if (alreadyCompleted > 0) {
+                    fb.className = 'alert alert-info py-2 px-3 mb-3 small fw-bold';
+                    fb.innerHTML = `ℹ️ Tutte le <strong>${alreadyCompleted} gare</strong> presenti nel testo incollato risultavano già segnate come concluse.`;
+                } else {
+                    fb.className = 'alert alert-warning py-2 px-3 mb-3 small fw-bold';
+                    fb.innerHTML = `⚠️ Nessuna corrispondenza trovata nel testo incollato. Assicurati di aver copiato l'elenco gare dalla pagina Risultati FIDAL oppure usa la spunta rapida 1-Click qui sotto.`;
+                }
+            }
+        };
+
+        window.markPastRacesCompleted = async function() {
+            const races = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
+            const now = new Date();
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+            let count = 0;
+
+            for (const r of races) {
+                if (r.isCompleted || !r.scheduledTime || !r.scheduledTime.includes(':')) continue;
+                const [hh, mm] = r.scheduledTime.split(':').map(Number);
+                const raceObj = currentMeeting.data.find(d => d.nome_gara === r.name);
+                const dur = raceObj ? Math.round(estimateDuration(raceObj.nome_gara, raceObj.numero_iscritti, isMiddleDistance(raceObj.nome_gara))) : 15;
+                if (nowMins >= (hh * 60 + mm + dur)) {
+                    r.isCompleted = 1;
+                    await db.races.put(r);
+                    count++;
+                }
+            }
+            await buildSidebar();
+            await renderWiseChecklist();
+            const fb = document.getElementById('wise-sync-feedback');
+            if (fb) {
+                fb.className = 'alert alert-info py-2 px-3 mb-3 small fw-bold';
+                fb.textContent = count > 0
+                    ? `⏱ ${count} gare con orario di fine superato sono state segnate come concluse.`
+                    : `ℹ️ Nessuna gara attiva ha ancora superato il proprio orario di fine stimata (${now.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'})}).`;
+            }
+        };
+
+        window.setAllRacesCompleted = async function(state) {
+            const races = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
+            for (const r of races) {
+                r.isCompleted = state ? 1 : 0;
+                await db.races.put(r);
+            }
+            await buildSidebar();
+            await renderWiseChecklist();
+            const fb = document.getElementById('wise-sync-feedback');
+            if (fb) {
+                fb.className = 'alert alert-info py-2 px-3 mb-3 small fw-bold';
+                fb.textContent = state ? '✅ Tutte le gare del meeting sono state segnate come concluse.' : '🔄 Tutte le gare del meeting sono state riaperte (In Attesa).';
+            }
+        };
+
+        window.renderWiseChecklist = async function() {
+            const tbody = document.getElementById('wise-checklist-tbody');
+            const summaryEl = document.getElementById('wise-checklist-summary');
+            if (!tbody || !currentMeeting) return;
+
+            const racesDb = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
+            const rMap = {};
+            racesDb.forEach(r => { rMap[r.name] = r; });
+
+            let doneCount = 0;
+            let rowsHtml = '';
+
+            currentMeeting.data.forEach((r, idx) => {
+                const rec = rMap[r.nome_gara] || {};
+                const isComp = !!rec.isCompleted;
+                if (isComp) doneCount++;
+                const day = rec.day || 1;
+                const timeStr = rec.scheduledTime || '--:--';
+                const sector = getTrackSector(r.nome_gara);
+                const safeNameJs = r.nome_gara.replace(/'/g, '&apos;');
+
+                rowsHtml += `
+                <tr>
+                    <td class="tabular-nums fw-bold">G${day} · ${timeStr}</td>
+                    <td>
+                        <a href="#" onclick="showRace(${idx}, null); return false;" class="text-decoration-none fw-bold ${isComp ? 'text-success' : ''}" style="color: var(--app-text);">${r.nome_gara}</a>
+                    </td>
+                    <td class="text-center tabular-nums">${r.numero_iscritti}</td>
+                    <td class="text-center"><span class="sector-badge sector-${sector}">${getSectorLabel(sector)}</span></td>
+                    <td class="text-center">
+                        ${isComp
+                            ? '<span class="status-pill status-pill-success">✅ CONCLUSA</span>'
+                            : '<span class="status-pill status-pill-neutral">⏳ IN ATTESA</span>'}
+                    </td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm ${isComp ? 'btn-outline-secondary' : 'btn-success'} fw-bold" onclick="toggleRaceCompleted(\`${safeNameJs}\`)">
+                            ${isComp ? '↩ Riapri Gara' : '✓ Segna Conclusa'}
+                        </button>
+                    </td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = rowsHtml;
+            if (summaryEl) {
+                summaryEl.textContent = `${doneCount} / ${currentMeeting.data.length} Concluse`;
+            }
+        };
+
+        window.syncWise = async function() {
+            clearActiveNav();
+            activeRaceIndex = null;
+            document.getElementById('nav-wise')?.classList.add('active');
+
+            const resUrl = (currentMeeting && currentMeeting.resultsUrl) ? currentMeeting.resultsUrl : '';
+
+            document.getElementById('main-content').innerHTML = `
+                <div class="view-header">
+                    <div>
+                        <div class="view-eyebrow">Sincronizzazione Risultati & Avanzamento Programma Orario</div>
+                        <h2 class="view-title">🔄 Sincronizza WISE & Stato Gare</h2>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="showOverview()">← Panoramica</button>
+                        <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="showCallRoom()">⏱ Call Room Live →</button>
+                    </div>
+                </div>
+
+                <div id="wise-sync-feedback" class="d-none"></div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-lg-7">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                                <span class="fw-bold">📋 1. Sincronizzazione Assistita Risultati FIDAL / WISE</span>
+                                <span class="status-pill status-pill-info text-nowrap">Compatibile Cloudflare</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted small mb-3">
+                                    Il portale FIDAL protegge le pagine risultati con Cloudflare contro i proxy automatici. Aprendo il link nel tuo browser e copiando la pagina (<code>Ctrl+A</code> poi <code>Ctrl+C</code>), la dashboard analizza istantaneamente in locale i risultati pubblicati e aggiorna tutte le gare concluse.
+                                </p>
+
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-muted mb-1">URL Pagina Risultati FIDAL (IndexRisultatiPerGara.html):</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="url" id="wise-results-url" class="form-control font-monospace" value="${resUrl}" placeholder="https://www.fidal.it/risultati/.../IndexRisultatiPerGara.html">
+                                        <button class="btn btn-outline-secondary fw-semibold" type="button" onclick="saveMeetingResultsUrl()">💾 Salva URL</button>
+                                        ${resUrl ? `<a href="${resUrl}" target="_blank" id="wise-open-url-btn" class="btn btn-primary fw-bold">🌐 1. Apri Risultati FIDAL ↗</a>` : ''}
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-1 gap-2">
+                                        <label class="form-label small fw-bold text-muted mb-0">Incolla qui il testo della pagina Risultati (<code>Ctrl+A</code> → <code>Ctrl+C</code> → <code>Ctrl+V</code>) o il codice HTML:</label>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-outline-info btn-sm py-0 px-2 fw-semibold" onclick="pasteFromClipboardWise()">📋 Incolla dagli Appunti</button>
+                                            <label class="btn btn-outline-secondary btn-sm py-0 px-2 fw-semibold mb-0" style="cursor:pointer;">
+                                                📂 Carica file .html
+                                                <input type="file" accept=".html,.htm,.txt" class="d-none" onchange="handleWiseFileUpload(this)">
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <textarea id="wise-paste-input" class="form-control font-monospace small" rows="4" placeholder="Apri la pagina Risultati FIDAL, premi Ctrl+A e Ctrl+C, poi incolla qui (Ctrl+V) e clicca su 'Analizza e Sincronizza'..."></textarea>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" id="wise-parse-btn" class="btn btn-success fw-bold" onclick="parseWiseContentAndSync()">⚡ Analizza e Sincronizza Gare Concluse</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-5">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">⚡ 2. Azioni Rapide in Blocco</span>
+                                <span id="wise-checklist-summary" class="status-pill status-pill-success tabular-nums">0 / 0 Concluse</span>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div>
+                                    <p class="text-muted small mb-3">
+                                        Puoi aggiornare lo stato di avanzamento del meeting anche in base all'orario programmato o manualmente con un clic sulla tabella sottostante. Le gare segnate come <strong>Concluse</strong> vengono archiviate dal tabellone <em>Call Room Live</em> e contrassegnate con <code>OK</code> nella barra laterale.
+                                    </p>
+                                    <div class="d-grid gap-2">
+                                        <button type="button" class="btn btn-outline-info fw-bold text-start" onclick="markPastRacesCompleted()">
+                                            ⏱ Segna Concluse le Gare con Orario Passato
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success fw-semibold text-start" onclick="setAllRacesCompleted(1)">
+                                            ✅ Segna Tutte le Gare come Concluse
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary fw-semibold text-start" onclick="setAllRacesCompleted(0)">
+                                            🔄 Riapri Tutte le Gare (Segna In Attesa)
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="small text-muted mt-3 pt-2 border-top">
+                                    💡 <strong>Scorciatoia:</strong> Puoi segnare o riaprire una singola gara con 1 clic anche direttamente dalla <em>Panoramica Meeting</em> o dal tabellone <em>Call Room Live</em>.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" id="wise-sync-container">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">📋 Checklist Stato Gare del Meeting (Spunta 1-Click)</span>
+                        <span class="small text-muted">Clicca su "✓ Segna Conclusa" man mano che le gare terminano</span>
+                    </div>
+                    <div class="table-container-card border-0">
+                        <table class="table table-striped align-middle mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="14%">Giorno & Ora</th>
+                                    <th>Gara</th>
+                                    <th class="text-center" width="10%">Iscritti</th>
+                                    <th class="text-center" width="14%">Settore</th>
+                                    <th class="text-center" width="14%">Stato</th>
+                                    <th class="text-end" width="16%">Azione Rapida</th>
+                                </tr>
+                            </thead>
+                            <tbody id="wise-checklist-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            await renderWiseChecklist();
+        };
 
         async function showRace(index, btn) {
             clearActiveNav();
