@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="night">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,66 +7,814 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
     <style>
+        /* ==========================================================================
+           WA GOLD TD DASHBOARD 2.0 — DESIGN SYSTEM (NIGHT SESSION DARK DEFAULT)
+           ========================================================================== */
+        :root,
+        [data-theme="night"] {
+            --app-bg: #0b1120;
+            --app-surface: #111827;
+            --app-surface-alt: #1e293b;
+            --app-surface-elevated: #172033;
+            --app-surface-hover: rgba(255, 255, 255, 0.04);
+            --app-border: #283548;
+            --app-border-strong: #334155;
+            --app-text: #f1f5f9;
+            --app-text-secondary: #cbd5e1;
+            --app-muted: #94a3b8;
+            --app-sidebar: #070b14;
+            --app-sidebar-hover: #151e31;
+            --app-sidebar-active: #1e293b;
+            --app-sidebar-text: #cbd5e1;
+            --app-accent: #f59e0b;
+            --app-accent-soft: rgba(245, 158, 11, 0.16);
+            --app-accent-fg: #fbbf24;
+            --app-primary: #3b82f6;
+            --app-primary-hover: #2563eb;
+            --app-primary-soft: rgba(59, 130, 246, 0.18);
+            --app-primary-fg: #93c5fd;
+            --app-success: #10b981;
+            --app-success-soft: rgba(16, 185, 129, 0.16);
+            --app-success-fg: #34d399;
+            --app-warning: #f59e0b;
+            --app-warning-soft: rgba(245, 158, 11, 0.16);
+            --app-warning-fg: #fbbf24;
+            --app-danger: #f43f5e;
+            --app-danger-soft: rgba(244, 63, 94, 0.16);
+            --app-danger-fg: #fb7185;
+            --app-info: #0ea5e9;
+            --app-info-soft: rgba(14, 165, 233, 0.16);
+            --app-info-fg: #38bdf8;
+            --app-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
+        }
+
+        [data-theme="light"] {
+            --app-bg: #f4f6f9;
+            --app-surface: #ffffff;
+            --app-surface-alt: #f8fafc;
+            --app-surface-elevated: #f1f5f9;
+            --app-surface-hover: rgba(15, 23, 42, 0.035);
+            --app-border: #e2e8f0;
+            --app-border-strong: #cbd5e1;
+            --app-text: #0f172a;
+            --app-text-secondary: #334155;
+            --app-muted: #64748b;
+            --app-sidebar: #0b1628;
+            --app-sidebar-hover: #152540;
+            --app-sidebar-active: #1e3356;
+            --app-sidebar-text: #cbd5e1;
+            --app-accent: #d97706;
+            --app-accent-soft: #fef3c7;
+            --app-accent-fg: #92400e;
+            --app-primary: #2563eb;
+            --app-primary-hover: #1d4ed8;
+            --app-primary-soft: #dbeafe;
+            --app-primary-fg: #1e40af;
+            --app-success: #10b981;
+            --app-success-soft: #d1fae5;
+            --app-success-fg: #065f46;
+            --app-warning: #f59e0b;
+            --app-warning-soft: #fef3c7;
+            --app-warning-fg: #92400e;
+            --app-danger: #e11d48;
+            --app-danger-soft: #ffe4e6;
+            --app-danger-fg: #9f1239;
+            --app-info: #0284c7;
+            --app-info-soft: #e0f2fe;
+            --app-info-fg: #075985;
+            --app-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--app-bg);
+            color: var(--app-text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.25);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.45);
+        }
+
+        /* Layout Shell */
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            min-width: 280px;
+            max-width: 280px;
+            background-color: var(--app-sidebar);
+            color: var(--app-sidebar-text);
+            border-right: 1px solid var(--app-border);
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem 0.75rem;
+            z-index: 1030;
+            transition: transform 0.25s ease;
+        }
+
+        .main-content {
+            flex: 1;
+            min-width: 0;
+            padding: 1.75rem 2rem;
+            background-color: var(--app-bg);
+            color: var(--app-text);
+        }
+
+        /* Mobile Topbar & Drawer */
+        .mobile-topbar {
+            display: none;
+            background-color: var(--app-sidebar);
+            color: #fff;
+            border-bottom: 1px solid var(--app-border);
+            padding: 0.65rem 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1025;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 1028;
+        }
+
+        @media (max-width: 991.98px) {
+            .app-shell {
+                flex-direction: column;
+            }
+            .mobile-topbar {
+                display: flex;
+            }
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+                box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+            }
+            .sidebar.show-mobile {
+                transform: translateX(0);
+            }
+            .sidebar-backdrop.show-mobile {
+                display: block;
+            }
+            .main-content {
+                padding: 1.25rem 1rem;
+            }
+        }
+
+        /* Brand Header */
+        .brand-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.25rem 0.5rem 0.75rem 0.5rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+            margin-bottom: 0.85rem;
+        }
+        .brand-logo {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+            color: #fff;
+            font-weight: 800;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: -0.03em;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+            flex-shrink: 0;
+        }
+        .brand-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #f8fafc;
+            line-height: 1.15;
+            margin: 0;
+        }
+        .brand-subtitle {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            display: block;
+        }
+
+        .theme-toggle-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #e2e8f0;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .theme-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+            color: #fbbf24;
+        }
+
+        /* Sidebar Controls & Navigation */
+        .sidebar-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            padding: 0 0.5rem;
+            margin-bottom: 0.35rem;
+        }
+
+        #meeting-selector {
+            background-color: #111827 !important;
+            color: #f8fafc !important;
+            border: 1px solid rgba(148, 163, 184, 0.22) !important;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.45rem 2rem 0.45rem 0.65rem;
+        }
+        #meeting-selector:focus {
+            border-color: var(--app-accent) !important;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2) !important;
+        }
+
+        .sidebar .nav-link {
+            color: var(--app-sidebar-text);
+            border-radius: 8px;
+            padding: 0.48rem 0.65rem;
+            font-size: 0.82rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+        }
+        .sidebar .nav-link:hover {
+            background-color: var(--app-sidebar-hover);
+            color: #ffffff;
+        }
+        .sidebar .nav-link.active {
+            background-color: var(--app-sidebar-active);
+            color: #ffffff;
+            font-weight: 600;
+            border-color: rgba(245, 158, 11, 0.3);
+            box-shadow: inset 3px 0 0 var(--app-accent);
+        }
+
         .race-btn {
             border-left: 3px solid transparent;
+            justify-content: space-between;
+            padding: 0.4rem 0.6rem !important;
+            font-size: 0.8rem !important;
         }
         .race-btn.active {
-            border-left-color: #0d6efd;
-            background-color: #e9ecef;
+            border-left-color: var(--app-accent) !important;
+            background-color: var(--app-sidebar-active) !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
+        }
+
+        .race-cat-header {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #fbbf24;
+            padding: 0.6rem 0.5rem 0.25rem 0.5rem;
+            margin-top: 0.35rem;
+            border-bottom: 1px solid rgba(251, 191, 36, 0.18);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .race-count-pill {
+            font-size: 0.7rem;
+            padding: 0.08rem 0.42rem;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.14);
+            color: #94a3b8;
+            font-variant-numeric: tabular-nums;
+            flex-shrink: 0;
+        }
+        .race-done-pill {
+            font-size: 0.68rem;
+            padding: 0.08rem 0.42rem;
+            border-radius: 999px;
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Surface & Bootstrap Overrides */
+        .card {
+            background-color: var(--app-surface);
+            color: var(--app-text);
+            border: 1px solid var(--app-border);
+            border-radius: 12px;
+            box-shadow: var(--app-shadow);
+        }
+        .card-header {
+            background-color: var(--app-surface-alt);
+            color: var(--app-text);
+            border-bottom: 1px solid var(--app-border);
+            padding: 0.75rem 1.1rem;
+            font-weight: 600;
+        }
+        .card-header:first-child {
+            border-radius: 11px 11px 0 0;
+        }
+
+        .bg-light {
+            background-color: var(--app-surface-alt) !important;
+            color: var(--app-text) !important;
+        }
+        .text-dark {
+            color: var(--app-text) !important;
+        }
+        .text-muted {
+            color: var(--app-muted) !important;
+        }
+        .border, .border-top, .border-bottom {
+            border-color: var(--app-border) !important;
+        }
+        hr {
+            border-color: var(--app-border);
+            opacity: 1;
+        }
+
+        /* Forms & Inputs */
+        .form-control, .form-select, .input-group-text {
+            background-color: var(--app-surface-alt);
+            color: var(--app-text);
+            border: 1px solid var(--app-border-strong);
+            border-radius: 8px;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: var(--app-surface-alt);
+            color: var(--app-text);
+            border-color: var(--app-primary);
+            box-shadow: 0 0 0 3px var(--app-primary-soft);
+        }
+        .form-control::placeholder {
+            color: var(--app-muted);
+            opacity: 0.75;
+        }
+
+        /* Modern KPI Cards */
+        .kpi-card {
+            background-color: var(--app-surface);
+            border: 1px solid var(--app-border);
+            border-radius: 12px;
+            padding: 1.1rem 1.25rem;
+            box-shadow: var(--app-shadow);
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+        }
+        .kpi-card::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--kpi-color, var(--app-primary));
+        }
+        .kpi-label {
+            font-size: 0.74rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--app-muted);
+            margin-bottom: 0.35rem;
+        }
+        .kpi-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--app-text);
+            line-height: 1.15;
+            font-variant-numeric: tabular-nums;
+        }
+        .kpi-sub {
+            font-size: 0.76rem;
+            color: var(--app-muted);
+            margin-top: 0.3rem;
+        }
+
+        /* Filter Pills & Search Bar */
+        .filter-toolbar {
+            background-color: var(--app-surface);
+            border: 1px solid var(--app-border);
+            border-radius: 12px;
+            padding: 0.65rem 0.9rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .filter-pill {
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--app-muted);
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.32rem 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .filter-pill:hover {
+            color: var(--app-text);
+            background-color: var(--app-surface-alt);
+        }
+        .filter-pill.active {
+            background-color: var(--app-primary-soft);
+            color: var(--app-primary-fg);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        /* Tables */
+        .table-container-card {
+            background-color: var(--app-surface);
+            border: 1px solid var(--app-border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--app-shadow);
+        }
+        .table {
+            --bs-table-bg: transparent;
+            --bs-table-color: var(--app-text);
+            --bs-table-border-color: var(--app-border);
+            --bs-table-striped-bg: rgba(148, 163, 184, 0.03);
+            --bs-table-striped-color: var(--app-text);
+            --bs-table-hover-bg: var(--app-surface-hover);
+            --bs-table-hover-color: var(--app-text);
+            color: var(--app-text);
+            margin-bottom: 0;
+        }
+        .table thead th,
+        .table-dark th,
+        .table-light th,
+        .table-light {
+            background-color: var(--app-surface-alt) !important;
+            color: var(--app-muted) !important;
+            border-bottom: 1px solid var(--app-border-strong) !important;
+            font-size: 0.74rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 0.75rem 0.85rem;
+        }
+        .table td {
+            padding: 0.7rem 0.85rem;
+            border-color: var(--app-border);
+            color: var(--app-text);
+            vertical-align: middle;
+        }
+
+        /* Semantic Status Rows & Pills (Call Room & Schedule) */
+        .table-success, tr.table-success > td {
+            background-color: var(--app-success-soft) !important;
+            color: var(--app-text) !important;
+        }
+        .table-warning, tr.table-warning > td {
+            background-color: var(--app-warning-soft) !important;
+            color: var(--app-text) !important;
+        }
+        .table-danger, tr.table-danger > td {
+            background-color: var(--app-danger-soft) !important;
+            color: var(--app-text) !important;
+        }
+        .table-info, tr.table-info > td {
+            background-color: var(--app-info-soft) !important;
+            color: var(--app-text) !important;
+        }
+        tr.table-success { border-left: 4px solid var(--app-success); }
+        tr.table-warning { border-left: 4px solid var(--app-warning); }
+        tr.table-danger  { border-left: 4px solid var(--app-danger); }
+        tr.table-info    { border-left: 4px solid var(--app-info); }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .status-pill-success { background: var(--app-success-soft); color: var(--app-success-fg); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .status-pill-warning { background: var(--app-warning-soft); color: var(--app-warning-fg); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .status-pill-danger  { background: var(--app-danger-soft);  color: var(--app-danger-fg);  border: 1px solid rgba(244, 63, 94, 0.3); }
+        .status-pill-info    { background: var(--app-info-soft);    color: var(--app-info-fg);    border: 1px solid rgba(14, 165, 233, 0.3); }
+        .status-pill-neutral { background: rgba(148, 163, 184, 0.12); color: var(--app-muted); border: 1px solid var(--app-border); }
+
+        /* Stadium Live Clock */
+        .stadium-clock {
+            background: #050811;
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            padding: 0.38rem 0.9rem;
+            border-radius: 10px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            font-variant-numeric: tabular-nums;
+            box-shadow: inset 0 0 12px rgba(245, 158, 11, 0.12);
+        }
+
+        /* Lane Badge */
+        .lane-badge {
+            display: inline-flex;
+            width: 26px;
+            height: 26px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            background-color: var(--app-surface-alt);
+            border: 1px solid var(--app-border-strong);
+            color: var(--app-text);
+            font-variant-numeric: tabular-nums;
+        }
+        .lane-badge.pref-lane {
+            background-color: var(--app-accent-soft);
+            color: var(--app-accent-fg);
+            border-color: rgba(245, 158, 11, 0.35);
+        }
+
+        /* Alerts & List Group */
+        .alert {
+            border-radius: 10px;
+            background-color: var(--app-surface-alt);
+            color: var(--app-text);
+            border: 1px solid var(--app-border-strong);
+        }
+        .alert-warning {
+            background-color: var(--app-warning-soft);
+            color: var(--app-warning-fg);
+            border-color: rgba(245, 158, 11, 0.35);
+        }
+        .alert-info {
+            background-color: var(--app-info-soft);
+            color: var(--app-info-fg);
+            border-color: rgba(14, 165, 233, 0.35);
+        }
+        .list-group-item {
+            background-color: var(--app-surface);
+            color: var(--app-text);
+            border-color: var(--app-border);
+        }
+
+        /* Page Header */
+        .view-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding-bottom: 1rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--app-border);
+        }
+        .view-eyebrow {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--app-accent-fg);
+            margin-bottom: 0.15rem;
+        }
+        .view-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0;
+            color: var(--app-text);
+        }
+
+        /* Segmented Tabs (Notes & Dispositivo) */
+        .seg-tabs {
+            display: inline-flex;
+            background-color: var(--app-surface);
+            border: 1px solid var(--app-border);
+            padding: 0.25rem;
+            border-radius: 10px;
+            gap: 0.25rem;
+        }
+        .seg-tab-btn {
+            border: none;
+            background: transparent;
+            color: var(--app-muted);
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 0.45rem 0.95rem;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .seg-tab-btn.active {
+            background-color: var(--app-primary);
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+        }
+
+        .anomaly {
+            background-color: var(--app-warning-soft) !important;
             font-weight: bold;
         }
-        .anomaly { background-color: #ffeeba !important; font-weight: bold; }
-        
-                                @media print {
-            body {
+
+        /* ==========================================================================
+           STRICT PRINT RESET — CRISP BLACK & WHITE PAPER SHEETS (A4)
+           ========================================================================== */
+        @media print {
+            :root, [data-theme="night"], [data-theme="light"] {
+                --app-bg: #ffffff !important;
+                --app-surface: #ffffff !important;
+                --app-surface-alt: #f8f9fa !important;
+                --app-border: #000000 !important;
+                --app-border-strong: #000000 !important;
+                --app-text: #000000 !important;
+                --app-muted: #333333 !important;
+            }
+            body, .main-content, .app-shell, .card, .table-container-card {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            .table-dark th { 
-                background-color: #212529 !important; 
-                color: white !important; 
+            .sidebar, .mobile-topbar, .sidebar-backdrop, .d-print-none {
+                display: none !important;
             }
-            .table-success { background-color: #d1e7dd !important; }
-            .table-warning { background-color: #fff3cd !important; }
-            .table-danger { background-color: #f8d7da !important; }
-            .table-info { background-color: #cff4fc !important; }
-            .badge { border: 1px solid black; }
+            .table {
+                color: #000000 !important;
+                border-color: #000000 !important;
+            }
+            .table th, .table td {
+                color: #000000 !important;
+                border-color: #444444 !important;
+            }
+            .table-dark th {
+                background-color: #212529 !important;
+                color: #ffffff !important;
+            }
+            .table-light th, .table-light {
+                background-color: #e9ecef !important;
+                color: #000000 !important;
+            }
+            .table-success, tr.table-success > td { background-color: #d1e7dd !important; color: #000 !important; }
+            .table-warning, tr.table-warning > td { background-color: #fff3cd !important; color: #000 !important; }
+            .table-danger,  tr.table-danger > td  { background-color: #f8d7da !important; color: #000 !important; }
+            .table-info,    tr.table-info > td    { background-color: #cff4fc !important; color: #000 !important; }
+            .badge, .status-pill, .lane-badge {
+                border: 1px solid #000000 !important;
+                color: #000000 !important;
+                background: transparent !important;
+            }
+            a {
+                color: #000000 !important;
+                text-decoration: none !important;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-2 sidebar d-print-none" id="sidebar">
-                <div class="px-3 mb-4">
-                    <h5 class="text-warning fw-bold">🥇 WA Gold TD</h5>
-                    <select id="meeting-selector" class="form-select form-select-sm mt-3" onchange="switchMeeting()">
-                    </select>
-                </div>
-                
-                <div class="px-2" id="nav-general">
-                    <button class="nav-link w-100 text-start btn btn-sm mb-1 active" onclick="showOverview()">📊 Panoramica Meeting</button>
-                    <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showCallRoom()">⏱ Call Room Live</button>
-                    <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showNotes()">📝 Appunti & Dispositivo</button>
-                    <button class="nav-link w-100 text-start btn btn-sm mb-1 text-primary fw-bold" onclick="syncWise()">🔄 Sincronizza WISE</button>
-                    <button class="nav-link w-100 text-start btn btn-sm mb-1 text-success fw-bold" onclick="showShoeControl()">👟 Controllo Scarpe</button>
-                    <button class="nav-link w-100 text-start btn btn-sm mb-1 text-danger fw-bold" onclick="showAthleteSearch()">🔍 Ricerca & Doping</button>
-                </div>
-                
-                <hr class="text-secondary">
-                <div class="px-2" id="race-list"></div>
-            </div>
-            
-            <!-- Main Content -->
-            <div class="col-md-10 main-content" id="main-content">
-                <!-- Injected via JS -->
-            </div>
+    <!-- Mobile Topbar -->
+    <div class="mobile-topbar d-print-none">
+        <div class="d-flex align-items-center gap-2">
+            <span class="brand-logo">WA</span>
+            <span class="fw-bold">WA Gold TD</span>
         </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Cambia tema Chiaro/Scuro" id="mobile-theme-btn">☀️</button>
+            <button class="btn btn-sm btn-outline-light" onclick="toggleMobileSidebar()">☰ Menu</button>
+        </div>
+    </div>
+    <div class="sidebar-backdrop d-print-none" id="sidebar-backdrop" onclick="toggleMobileSidebar(false)"></div>
+
+    <div class="app-shell">
+        <!-- Sidebar -->
+        <aside class="sidebar d-print-none" id="sidebar">
+            <div class="brand-box">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="brand-logo">WA</span>
+                    <div>
+                        <h5 class="brand-title">🥇 WA Gold TD</h5>
+                        <span class="brand-subtitle">Technical Delegate 2.0</span>
+                    </div>
+                </div>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" title="Passa a tema Chiaro / Scuro" id="theme-toggle-btn">☀️</button>
+            </div>
+
+            <div class="px-1 mb-3">
+                <div class="sidebar-label">Meeting Attivo</div>
+                <select id="meeting-selector" class="form-select form-select-sm" onchange="switchMeeting()">
+                </select>
+            </div>
+
+            <div class="sidebar-label">Menu Principale</div>
+            <div class="mb-2" id="nav-general">
+                <button class="nav-link w-100 text-start btn btn-sm mb-1 active" onclick="showOverview(); toggleMobileSidebar(false);">📊 Panoramica Meeting</button>
+                <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showCallRoom(); toggleMobileSidebar(false);">⏱ Call Room Live</button>
+                <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showNotes(); toggleMobileSidebar(false);">📝 Appunti & Dispositivo</button>
+                <button class="nav-link w-100 text-start btn btn-sm mb-1 text-info fw-semibold" onclick="syncWise()">🔄 Sincronizza WISE</button>
+                <button class="nav-link w-100 text-start btn btn-sm mb-1 text-success fw-semibold" onclick="showShoeControl(this); toggleMobileSidebar(false);">👟 Controllo Scarpe</button>
+                <button class="nav-link w-100 text-start btn btn-sm mb-1 text-danger fw-semibold" onclick="showAthleteSearch(this); toggleMobileSidebar(false);">🔍 Ricerca & Doping</button>
+            </div>
+
+            <div class="px-1 flex-grow-1" id="race-list"></div>
+
+            <div class="pt-3 mt-3 border-top border-secondary border-opacity-25 px-2 d-flex justify-content-between align-items-center small text-secondary" style="font-size: 0.72rem;">
+                <span>Offline IndexedDB</span>
+                <span>TR 20 · 25 · 26</span>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+            <!-- Injected via JS -->
+        </main>
     </div>
 
     <!-- Application Logic -->
     <script>
+        // Theme Persistence (Default: 'night' — Opzione C)
+        function applyTheme(theme) {
+            const t = theme || localStorage.getItem('wa_td_theme') || 'night';
+            document.documentElement.setAttribute('data-theme', t);
+            localStorage.setItem('wa_td_theme', t);
+            const icon = t === 'night' ? '☀️' : '🌙';
+            const btn1 = document.getElementById('theme-toggle-btn');
+            const btn2 = document.getElementById('mobile-theme-btn');
+            if (btn1) btn1.textContent = icon;
+            if (btn2) btn2.textContent = icon;
+        }
+        window.toggleTheme = function() {
+            const cur = document.documentElement.getAttribute('data-theme') || 'night';
+            applyTheme(cur === 'night' ? 'light' : 'night');
+        };
+        window.toggleMobileSidebar = function(force) {
+            const sb = document.getElementById('sidebar');
+            const bd = document.getElementById('sidebar-backdrop');
+            if (!sb || !bd) return;
+            const show = typeof force === 'boolean' ? force : !sb.classList.contains('show-mobile');
+            sb.classList.toggle('show-mobile', show);
+            bd.classList.toggle('show-mobile', show);
+        };
+        applyTheme();
+
         // 1. Database Setup
         const db = new Dexie('WAGoldDatabase');
         db.version(1).stores({
@@ -79,6 +827,7 @@
         let currentMeeting = null;
         let activeRaceIndex = null;
         let callRoomTimer = null;
+        let currentOverviewFilter = 'all';
 
         
         window.__INJECTED_MEETING__ = {
@@ -154,7 +903,6 @@
                 if (match) {
                     sel.value = match[0].toUpperCase();
                 } else {
-                    // Fallback to "default" if no code is found
                     sel.value = "default";
                 }
             }
@@ -167,21 +915,31 @@
             if (!sel.value) return;
             
             currentMeeting = await db.meetings.get(sel.value);
-            await await buildSidebar();
+            window.currentMeeting = currentMeeting;
+            await buildSidebar();
             showOverview();
         }
 
         // Helpers
         function isFieldEvent(name) {
             const lower = name.toLowerCase();
-            return ['salto', 'lungo', 'alto', 'asta', 'triplo', 'peso', 'disco', 'martello', 'giavellotto', 'vortex'].some(k => lower.includes(k));
+            return ['salto', 'lungo', 'alto', 'asta', 'triplo', 'peso', 'disco', 'martello', 'maniglia', 'giavellotto', 'vortex', 'palla', 'lancio', 'lanci'].some(k => lower.includes(k));
+        }
+        function isThrowEvent(name) {
+            const lower = name.toLowerCase();
+            return ['peso', 'disco', 'martello', 'maniglia', 'giavellotto', 'vortex', 'palla', 'lancio', 'lanci'].some(k => lower.includes(k));
         }
         function isTripleJump(name) {
             return name.toLowerCase().includes('triplo');
         }
+        function isHighJump(name) {
+            return /\balto\b/i.test(name);
+        }
+        function isPoleVault(name) {
+            return /\basta\b/i.test(name);
+        }
         function isVerticalJump(name) {
-            const lower = name.toLowerCase();
-            return lower.includes('alto') || lower.includes('asta');
+            return isHighJump(name) || isPoleVault(name);
         }
         function getFieldConfig(index) {
             const raw = localStorage.getItem('field_data_' + currentMeeting.id + '_' + index);
@@ -250,10 +1008,9 @@
             return 4;
         }
         function estimateDuration(nomeGara, iscrittiCount, isMiddle, heatsCount, customInterval) {
-            const lower = nomeGara.toLowerCase();
             if (isFieldEvent(nomeGara)) {
-                if (lower.includes('asta')) return iscrittiCount * 3 + 15;
-                if (lower.includes('alto')) return iscrittiCount * 2 + 10;
+                if (isPoleVault(nomeGara)) return iscrittiCount * 3 + 15;
+                if (isHighJump(nomeGara)) return iscrittiCount * 2 + 10;
                 return Math.ceil(iscrittiCount * 1.5) + 15;
             }
             let assumedHeats = heatsCount || Math.ceil(iscrittiCount / (isMiddle ? 12 : 6));
@@ -262,32 +1019,46 @@
         }
 
         // Sidebar
-        function buildSidebar() {
+        async function buildSidebar() {
             const list = document.getElementById('race-list');
             list.innerHTML = '';
+            if (!currentMeeting || !currentMeeting.data) return;
+
+            const racesDb = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
+            const compMap = {};
+            racesDb.forEach(r => { compMap[r.name] = r.isCompleted; });
             
             const groups = { 'Corse': [], 'Salti': [], 'Lanci': [] };
             currentMeeting.data.forEach((race, index) => {
                 let cat = 'Corse';
                 if (isFieldEvent(race.nome_gara)) {
-                    cat = ['peso', 'disco', 'martello', 'giavellotto', 'vortex'].some(k => race.nome_gara.toLowerCase().includes(k)) ? 'Lanci' : 'Salti';
+                    cat = isThrowEvent(race.nome_gara) ? 'Lanci' : 'Salti';
                 }
                 groups[cat].push({race, index});
             });
             
             for (const [groupName, races] of Object.entries(groups)) {
                 if (races.length === 0) continue;
-                const header = document.createElement('h6');
-                header.className = 'mt-3 mb-2 text-warning fw-bold border-bottom pb-1';
-                header.textContent = groupName;
+                const header = document.createElement('div');
+                header.className = 'race-cat-header';
+                header.innerHTML = `<span>${groupName}</span><span class="opacity-75">${races.length}</span>`;
                 list.appendChild(header);
                 
                 races.forEach(item => {
                     const btn = document.createElement('button');
-                    btn.className = 'nav-link text-start mb-1 btn btn-sm w-100 text-truncate race-btn';
-                    btn.style.fontSize = '0.85rem';
-                    btn.textContent = item.race.nome_gara;
-                    btn.onclick = () => showRace(item.index, btn);
+                    btn.className = 'nav-link text-start mb-1 btn btn-sm w-100 race-btn';
+                    if (activeRaceIndex === item.index) btn.classList.add('active');
+                    const isDone = compMap[item.race.nome_gara];
+                    const cleanTitle = item.race.nome_gara.replace(/\s*-\s*Lista Partecipanti/i, '');
+                    btn.title = item.race.nome_gara;
+                    btn.innerHTML = `
+                        <span class="text-truncate">${cleanTitle}</span>
+                        ${isDone ? '<span class="race-done-pill">OK</span>' : `<span class="race-count-pill">${item.race.numero_iscritti}</span>`}
+                    `;
+                    btn.onclick = () => {
+                        showRace(item.index, btn);
+                        toggleMobileSidebar(false);
+                    };
                     list.appendChild(btn);
                 });
             }
@@ -299,11 +1070,13 @@
         }
 
         // Views
-                        async function showOverview() {
+        async function showOverview() {
             clearActiveNav();
+            activeRaceIndex = null;
             document.querySelectorAll('#nav-general .nav-link')[0].classList.add('active');
             
-            let total = 0, anomaliesCount = 0, totalDurationMins = 0;
+            let total = 0, anomaliesCount = 0, totalDurationMins = 0, completedRacesCount = 0;
+            let countCorse = 0, countSalti = 0, countLanci = 0;
             
             const racesDb = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
             const timeMap = {};
@@ -313,11 +1086,18 @@
                 compMap[r.name] = r.isCompleted;
             });
             
-            let table = `<table class="table table-striped mt-4 align-middle"><thead class="table-dark"><tr><th>Orario (Call Room)</th><th>Gara</th><th>Iscritti</th><th>Tipo</th><th>Stima Durata</th><th>Stato</th></tr></thead><tbody>`;
+            let tableRows = '';
             
             currentMeeting.data.forEach((r, index) => {
                 total += r.numero_iscritti;
                 const field = isFieldEvent(r.nome_gara);
+                const throwEv = isThrowEvent(r.nome_gara);
+                const catKey = !field ? 'corse' : (throwEv ? 'lanci' : 'salti');
+                const catLabel = !field ? 'Corse' : (throwEv ? 'Lanci' : 'Salti');
+                if (catKey === 'corse') countCorse++;
+                else if (catKey === 'salti') countSalti++;
+                else countLanci++;
+
                 const isMiddle = isMiddleDistance(r.nome_gara);
                 let confHeats = null, confInterval = null;
                 if (!field) {
@@ -337,12 +1117,15 @@
                 
                 const schedTime = timeMap[r.nome_gara] || '';
                 const isComp = compMap[r.nome_gara];
+                if (isComp) completedRacesCount++;
                 
-                let statoHtml = `<span class="${anomalies > 0 ? 'text-danger fw-bold' : ''}">${anomalies} anom.</span>`;
+                let statoHtml = anomalies > 0
+                    ? `<span class="status-pill status-pill-warning">⚠️ ${anomalies} anom.</span>`
+                    : `<span class="status-pill status-pill-neutral">Pronta</span>`;
                 if (isComp && currentMeeting.resultsUrl) {
-                    statoHtml = `<a href="${currentMeeting.resultsUrl}" target="_blank" class="badge bg-success text-decoration-none">✅ Risultati</a>`;
+                    statoHtml = `<a href="${currentMeeting.resultsUrl}" target="_blank" class="status-pill status-pill-success text-decoration-none">✅ Risultati</a>`;
                 } else if (isComp) {
-                    statoHtml = `<span class="badge bg-success">✅ Conclusa</span>`;
+                    statoHtml = `<span class="status-pill status-pill-success">✅ Conclusa</span>`;
                 }
                 
                 let extraRaceControls = '';
@@ -352,12 +1135,12 @@
                     const b2 = fc.battuta2 || '';
                     const boardsStr = [b1, b2].filter(Boolean).join(' / ');
                     extraRaceControls = `
-                        <div class="mt-1 d-flex align-items-center flex-wrap gap-1 d-print-none fw-normal">
+                        <div class="mt-2 d-flex align-items-center flex-wrap gap-1 d-print-none fw-normal">
                             <span class="badge bg-secondary">📐 Battute (max 2):</span>
                             <input type="text" class="form-control form-control-sm" style="width: 85px;" placeholder="1ª es. 11m" value="${b1}" onchange="saveTripleJumpBoard(${index}, 1, this.value)" title="1ª Battuta Salto Triplo">
                             <input type="text" class="form-control form-control-sm" style="width: 85px;" placeholder="2ª es. 13m" value="${b2}" onchange="saveTripleJumpBoard(${index}, 2, this.value)" title="2ª Battuta Salto Triplo (opzionale)">
                         </div>
-                        <div id="tj-print-badge-${index}" class="${boardsStr ? '' : 'd-none'} small text-primary fw-bold mt-1">📐 Battute: ${boardsStr}</div>
+                        <div id="tj-print-badge-${index}" class="${boardsStr ? '' : 'd-none'} small text-info fw-bold mt-1">📐 Battute: ${boardsStr}</div>
                     `;
                 } else if (isVerticalJump(r.nome_gara)) {
                     const fc = getFieldConfig(index);
@@ -365,54 +1148,142 @@
                     const validVals = r.iscritti.map(i => parseAccreditoFloat(i.accredito)).filter(v => v > 0).sort((a,b) => a - b);
                     const rangeHint = validVals.length > 0 ? ` (SB: ${validVals[0].toFixed(2)}÷${validVals[validVals.length-1].toFixed(2)})` : '';
                     extraRaceControls = `
-                        <div class="mt-1 d-print-none fw-normal">
+                        <div class="mt-2 d-print-none fw-normal">
                             <div class="d-flex align-items-center flex-wrap gap-1">
                                 <span class="badge bg-secondary">📏 Progressione${rangeHint}:</span>
                                 <input type="text" class="form-control form-control-sm" style="max-width: 260px;" placeholder="Es. 1.80 1.85 1.90 1.93" value="${progVal}" onkeyup="validateProgression(this, '${r.nome_gara.replace(/'/g, "\\'")}'); saveProgressionConfig(${index}, this.value)" onchange="saveProgressionConfig(${index}, this.value)" title="Progressione Misure (TR 26.1)">
                                 <span class="form-text small m-0"></span>
                             </div>
                         </div>
-                        <div id="prog-print-badge-${index}" class="${progVal ? '' : 'd-none'} small text-primary fw-bold mt-1">📏 Progressione: ${progVal}</div>
+                        <div id="prog-print-badge-${index}" class="${progVal ? '' : 'd-none'} small text-info fw-bold mt-1">📏 Progressione: ${progVal}</div>
                     `;
                 }
                 
-                table += `<tr>
-                    <td style="width: 120px;">
-                        <input type="time" class="form-control form-control-sm d-print-none" value="${schedTime}" onchange="saveRaceTime(\`${r.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this)">
-                        <span class="d-none d-print-inline fw-bold fs-5">${schedTime || '--:--'}</span>
+                tableRows += `<tr class="overview-race-row" data-cat="${catKey}" data-anom="${anomalies > 0 ? '1' : '0'}" data-name="${r.nome_gara.toLowerCase()}">
+                    <td style="width: 135px;">
+                        <input type="time" class="form-control form-control-sm d-print-none tabular-nums fw-bold" value="${schedTime}" onchange="saveRaceTime(\`${r.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this)">
+                        <span class="d-none d-print-inline fw-bold fs-5 tabular-nums">${schedTime || '--:--'}</span>
                     </td>
                     <td class="fw-bold">
-                        <a href="#" onclick="showRace(${index}, null); return false;" class="text-decoration-none ${isComp ? 'text-success' : ''}">${r.nome_gara}</a>
+                        <a href="#" onclick="showRace(${index}, null); return false;" class="text-decoration-none ${isComp ? 'text-success' : ''}" style="color: var(--app-text); font-size: 0.95rem;">${r.nome_gara}</a>
                         ${extraRaceControls}
                     </td>
-                    <td>${r.numero_iscritti}</td><td>${field ? 'Concorsi' : 'Corse'}</td>
-                    <td>${Math.round(duration)} min</td>
-                    <td>${statoHtml}</td>
+                    <td class="text-center tabular-nums fw-semibold">${r.numero_iscritti}</td>
+                    <td class="text-center"><span class="status-pill status-pill-neutral">${catLabel}</span></td>
+                    <td class="text-center tabular-nums">${Math.round(duration)} min</td>
+                    <td class="text-end">${statoHtml}</td>
                 </tr>`;
             });
-            table += `</tbody></table>`;
             
             const hours = Math.floor(totalDurationMins / 60);
             const mins = Math.round(totalDurationMins % 60);
+            currentOverviewFilter = 'all';
             
             document.getElementById('main-content').innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                      <h2>${currentMeeting.name} - Panoramica</h2>
-                      <button class="btn btn-outline-secondary d-print-none" onclick="window.print()">🖨️ Stampa Riepilogo Gare</button>
-                  </div><hr>
-                <div class="row mb-4">
-                    <div class="col-md-3"><div class="card bg-primary text-white"><div class="card-body"><h4>Totale Gare</h4><h2>${currentMeeting.data.length}</h2></div></div></div>
-                    <div class="col-md-3"><div class="card bg-success text-white"><div class="card-body"><h4>Totale Atleti</h4><h2>${total}</h2></div></div></div>
-                    <div class="col-md-3"><div class="card bg-info text-white"><div class="card-body"><h4>Stima Durata Tot.</h4><h2>${hours}h ${mins}m</h2></div></div></div>
-                    <div class="col-md-3"><div class="card ${anomaliesCount>0?'bg-danger':'bg-secondary'} text-white"><div class="card-body"><h4>Gare con Anomalie</h4><h2>${anomaliesCount}</h2></div></div></div>
+                <div class="view-header">
+                    <div>
+                        <div class="view-eyebrow">World Athletics Gold · Meeting Overview (${currentMeeting.id})</div>
+                        <h2 class="view-title">${currentMeeting.name}</h2>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 d-print-none">
+                        <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="window.print()">🖨️ Stampa Riepilogo Gare</button>
+                        <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="showCallRoom()">⏱ Call Room Live →</button>
+                    </div>
                 </div>
-                ${anomaliesCount > 0 ? '<div class="alert alert-warning d-print-none"><strong>Attenzione:</strong> Alcune gare hanno atleti senza accredito (No Time / No Mark).</div>' : ''}
-                ${table}
+
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-xl-3">
+                        <div class="kpi-card" style="--kpi-color: #3b82f6;">
+                            <div class="kpi-label">Totale Gare</div>
+                            <div class="kpi-value">${currentMeeting.data.length}</div>
+                            <div class="kpi-sub">${countCorse} Corse · ${countSalti + countLanci} Concorsi</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-xl-3">
+                        <div class="kpi-card" style="--kpi-color: #10b981;">
+                            <div class="kpi-label">Totale Atleti</div>
+                            <div class="kpi-value">${total}</div>
+                            <div class="kpi-sub">${completedRacesCount} gare già concluse</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-xl-3">
+                        <div class="kpi-card" style="--kpi-color: #0ea5e9;">
+                            <div class="kpi-label">Stima Durata Tot.</div>
+                            <div class="kpi-value">${hours}h ${mins}m</div>
+                            <div class="kpi-sub">Basata su serie e pedane</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-xl-3">
+                        <div class="kpi-card" style="--kpi-color: ${anomaliesCount > 0 ? '#f59e0b' : '#64748b'};">
+                            <div class="kpi-label">Gare con Anomalie</div>
+                            <div class="kpi-value ${anomaliesCount > 0 ? 'text-warning' : ''}">${anomaliesCount}</div>
+                            <div class="kpi-sub">Atleti senza SB / accredito</div>
+                        </div>
+                    </div>
+                </div>
+
+                ${anomaliesCount > 0 ? '<div class="alert alert-warning py-2 px-3 mb-3 d-print-none small"><strong>⚠️ Attenzione:</strong> Alcune gare presentano atleti senza accredito (No Time / No Mark). Usa il filtro qui sotto per individuarle rapidamente.</div>' : ''}
+
+                <div class="filter-toolbar d-print-none">
+                    <div class="d-flex flex-wrap gap-1">
+                        <button class="filter-pill active" onclick="setOverviewFilter('all', this)">Tutte (${currentMeeting.data.length})</button>
+                        <button class="filter-pill" onclick="setOverviewFilter('corse', this)">Corse (${countCorse})</button>
+                        <button class="filter-pill" onclick="setOverviewFilter('salti', this)">Salti (${countSalti})</button>
+                        <button class="filter-pill" onclick="setOverviewFilter('lanci', this)">Lanci (${countLanci})</button>
+                        ${anomaliesCount > 0 ? `<button class="filter-pill text-warning" onclick="setOverviewFilter('anom', this)">⚠️ Con Anomalie (${anomaliesCount})</button>` : ''}
+                    </div>
+                    <div style="min-width: 220px;">
+                        <input type="search" id="overview-search" class="form-control form-control-sm" placeholder="🔍 Cerca gara..." oninput="filterOverviewTable()">
+                    </div>
+                </div>
+
+                <div class="table-container-card">
+                    <table class="table table-striped align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Orario (1ª Serie)</th>
+                                <th>Gara & Configurazione Rapida</th>
+                                <th class="text-center">Iscritti</th>
+                                <th class="text-center">Tipo</th>
+                                <th class="text-center">Stima Durata</th>
+                                <th class="text-end">Stato</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overview-tbody">
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
             `;
         }
 
+        window.setOverviewFilter = function(filter, btn) {
+            currentOverviewFilter = filter;
+            document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            filterOverviewTable();
+        };
+
+        window.filterOverviewTable = function() {
+            const q = (document.getElementById('overview-search')?.value || '').toLowerCase().trim();
+            document.querySelectorAll('.overview-race-row').forEach(row => {
+                const cat = row.getAttribute('data-cat');
+                const anom = row.getAttribute('data-anom');
+                const name = row.getAttribute('data-name') || '';
+                let matchCat = true;
+                if (currentOverviewFilter === 'corse') matchCat = cat === 'corse';
+                else if (currentOverviewFilter === 'salti') matchCat = cat === 'salti';
+                else if (currentOverviewFilter === 'lanci') matchCat = cat === 'lanci';
+                else if (currentOverviewFilter === 'anom') matchCat = anom === '1';
+
+                const matchQuery = !q || name.includes(q);
+                row.style.display = (matchCat && matchQuery) ? '' : 'none';
+            });
+        };
+
         async function showNotes() {
             clearActiveNav();
+            activeRaceIndex = null;
             document.querySelectorAll('#nav-general .nav-link')[2].classList.add('active');
             
             const savedDefaultTdName = localStorage.getItem('default_td_name') || '';
@@ -437,7 +1308,7 @@
                 if (isTripleJump(r.nome_gara)) {
                     tripleJumpRowsHtml += `
                     <tr>
-                        <td class="fw-bold"><a href="#" onclick="showRace(${idx}, null); return false;" class="text-decoration-none">${r.nome_gara}</a> <small class="text-muted">(${r.numero_iscritti} iscr.)</small></td>
+                        <td class="fw-bold"><a href="#" onclick="showRace(${idx}, null); return false;" class="text-decoration-none" style="color: var(--app-text);">${r.nome_gara}</a> <small class="text-muted">(${r.numero_iscritti} iscr.)</small></td>
                         <td><input type="text" class="form-control form-control-sm" placeholder="1ª Battuta (es. 11m)" value="${fc.battuta1 || ''}" onchange="saveTripleJumpBoard(${idx}, 1, this.value)"></td>
                         <td><input type="text" class="form-control form-control-sm" placeholder="2ª Battuta opz. (es. 13m)" value="${fc.battuta2 || ''}" onchange="saveTripleJumpBoard(${idx}, 2, this.value)"></td>
                     </tr>`;
@@ -445,9 +1316,9 @@
                 if (isVerticalJump(r.nome_gara)) {
                     verticalRowsHtml += `
                     <tr>
-                        <td class="fw-bold" width="35%"><a href="#" onclick="showRace(${idx}, null); return false;" class="text-decoration-none">${r.nome_gara}</a> <small class="text-muted">(${r.numero_iscritti} iscr.)</small></td>
+                        <td class="fw-bold" width="35%"><a href="#" onclick="showRace(${idx}, null); return false;" class="text-decoration-none" style="color: var(--app-text);">${r.nome_gara}</a> <small class="text-muted">(${r.numero_iscritti} iscr.)</small></td>
                         <td>
-                            <input type="text" class="form-control form-control-sm" placeholder="Es. 1.80 1.85 1.90 1.93" value="${fc.progression || ''}" onkeyup="validateProgression(this, '${r.nome_gara.replace(/'/g, "\'")}'); saveProgressionConfig(${idx}, this.value)" onchange="saveProgressionConfig(${idx}, this.value)">
+                            <input type="text" class="form-control form-control-sm" placeholder="Es. 1.80 1.85 1.90 1.93" value="${fc.progression || ''}" onkeyup="validateProgression(this, '${r.nome_gara.replace(/'/g, "\\'")}'); saveProgressionConfig(${idx}, this.value)" onchange="saveProgressionConfig(${idx}, this.value)">
                             <div class="form-text small text-muted">Separare le misure con spazio.</div>
                         </td>
                     </tr>`;
@@ -455,49 +1326,63 @@
             });
             
             document.getElementById('main-content').innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h2>📋 Dispositivo Tecnico & 📝 Appunti TD</h2>
+                <div class="view-header">
                     <div>
-                        <button class="btn btn-success me-2" onclick="saveNotes()">💾 Salva Tutto</button>
-                        <button class="btn btn-primary fw-bold" onclick="exportDispositivoPDF()">📄 Esporta Dispositivo Tecnico (PDF)</button>
+                        <div class="view-eyebrow">Documentazione Ufficiale & Note Riservate</div>
+                        <h2 class="view-title">📋 Dispositivo Tecnico & 📝 Appunti TD</h2>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-success btn-sm fw-semibold" onclick="saveNotes()">💾 Salva Tutto</button>
+                        <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="exportDispositivoPDF()">📄 Esporta Dispositivo Tecnico (PDF)</button>
                     </div>
                 </div>
-                <span id="note-save-feedback" class="badge bg-success mb-2 d-none">Modifiche salvate con successo!</span>
-                <hr>
+                <div id="note-save-feedback" class="alert alert-info py-2 px-3 mb-3 d-none small fw-bold">✅ Modifiche salvate con successo nel database locale!</div>
+
+                <div class="mb-4 d-print-none">
+                    <div class="seg-tabs">
+                        <button type="button" class="seg-tab-btn active" id="tab-btn-public" onclick="switchNotesTab('public')">📋 1. Dispositivo Tecnico (Pubblico PDF)</button>
+                        <button type="button" class="seg-tab-btn" id="tab-btn-private" onclick="switchNotesTab('private')">🔒 2. Appunti Riservati TD, Giurie & Radio</button>
+                        <button type="button" class="seg-tab-btn" id="tab-btn-both" onclick="switchNotesTab('both')">Vista Completa</button>
+                    </div>
+                </div>
                 
                 <!-- SEZIONE PUBBLICA: DISPOSITIVO TECNICO DELLA MANIFESTAZIONE -->
-                <div class="card border-primary shadow-sm mb-4">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <span class="fw-bold fs-5">📋 Dispositivo Tecnico della Manifestazione (Documento Pubblico per PDF)</span>
-                        <span class="badge bg-light text-primary">Esportabile in PDF</span>
+                <div class="card mb-4" id="notes-panel-public">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">📋 Dispositivo Tecnico della Manifestazione (Documento Pubblico per PDF)</span>
+                        <span class="status-pill status-pill-info">Esportabile in PDF A4</span>
                     </div>
                     <div class="card-body">
                         <p class="text-muted small mb-3">
                             Questa sezione genera il <strong>Dispositivo Tecnico ufficiale</strong> da distribuire a Società, Tecnici e Giurie.
-                            Le <strong>Progressioni</strong> dei salti in elevazione, le <strong>Battute del Salto Triplo</strong> e gli <strong>Orari di Call Room</strong> vengono riportati automaticamente dalle impostazioni delle gare (e puoi modificarli anche direttamente qui sotto). Gli appunti privati del TD in fondo alla pagina <strong>non</strong> verranno mai inclusi nel PDF.
+                            Le <strong>Progressioni</strong> dei salti in elevazione, le <strong>Battute del Salto Triplo</strong> e gli <strong>Orari di Call Room</strong> vengono riportati automaticamente dalle impostazioni delle gare. Gli appunti privati del TD <strong>non</strong> verranno mai inclusi nel PDF.
                         </p>
                         
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <h6 class="fw-bold text-primary">📐 Battute Salto Triplo (Max 2 per gara - Sincronizzate)</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-lg-6">
+                                <h6 class="fw-bold mb-2" style="color: var(--app-accent-fg);">📐 Battute Salto Triplo (Max 2 per gara - Sincronizzate)</h6>
                                 ${tripleJumpRowsHtml ? `
-                                <table class="table table-sm table-bordered align-middle mb-0">
-                                    <thead class="table-light"><tr><th>Gara</th><th>1ª Battuta</th><th>2ª Battuta (Opz.)</th></tr></thead>
-                                    <tbody>${tripleJumpRowsHtml}</tbody>
-                                </table>` : `<div class="alert alert-light border py-2 small mb-0">Nessuna gara di Salto Triplo presente in questo meeting.</div>`}
+                                <div class="table-container-card">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead><tr><th>Gara</th><th>1ª Battuta</th><th>2ª Battuta (Opz.)</th></tr></thead>
+                                        <tbody>${tripleJumpRowsHtml}</tbody>
+                                    </table>
+                                </div>` : `<div class="alert py-2 small mb-0">Nessuna gara di Salto Triplo presente in questo meeting.</div>`}
                             </div>
-                            <div class="col-md-6">
-                                <h6 class="fw-bold text-primary">📏 Progressioni Salti in Elevazione (Alto / Asta - Sincronizzate)</h6>
+                            <div class="col-lg-6">
+                                <h6 class="fw-bold mb-2" style="color: var(--app-primary-fg);">📏 Progressioni Salti in Elevazione (Alto / Asta - Sincronizzate)</h6>
                                 ${verticalRowsHtml ? `
-                                <table class="table table-sm table-bordered align-middle mb-0">
-                                    <thead class="table-light"><tr><th>Gara</th><th>Progressione Misure (TR 26.1)</th></tr></thead>
-                                    <tbody>${verticalRowsHtml}</tbody>
-                                </table>` : `<div class="alert alert-light border py-2 small mb-0">Nessuna gara di Alto o Asta presente in questo meeting.</div>`}
+                                <div class="table-container-card">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead><tr><th>Gara</th><th>Progressione Misure (TR 26.1)</th></tr></thead>
+                                        <tbody>${verticalRowsHtml}</tbody>
+                                    </table>
+                                </div>` : `<div class="alert py-2 small mb-0">Nessuna gara di Alto o Asta presente in questo meeting.</div>`}
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label class="form-label fw-bold mb-0">Norme Tecniche e Disposizioni del Dispositivo Tecnico (Campo Pubblico):</label>
                                 <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertDispositivoTemplate()">✨ Inserisci Modello Base Norme</button>
                             </div>
@@ -510,17 +1395,17 @@
                                 <input type="text" id="td-name" class="form-control" placeholder="Es. Dott. Mario Rossi" value="${tdNameVal}">
                             </div>
                             <div class="col-md-6 text-end mt-3 mt-md-0">
-                                <button class="btn btn-primary" onclick="exportDispositivoPDF()">📄 Genera ed Esporta Dispositivo Tecnico in PDF</button>
+                                <button class="btn btn-primary fw-bold" onclick="exportDispositivoPDF()">📄 Genera ed Esporta Dispositivo Tecnico in PDF</button>
                             </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- SEZIONE PRIVATA: APPUNTI RISERVATI TD, ORGANIGRAMMA E CONTATTI -->
-                <div class="card border-secondary shadow-sm mb-4">
-                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <div class="card mb-4" id="notes-panel-private">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <span class="fw-bold">🔒 Appunti Privati TD, Organigramma, Radio & Contatti</span>
-                        <span class="badge bg-warning text-dark">Uso Interno Riservato (Escluso dal PDF Pubblico)</span>
+                        <span class="status-pill status-pill-warning">Uso Interno Riservato (Escluso dal PDF)</span>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -537,7 +1422,7 @@
                                 <textarea id="td-med" class="form-control" rows="3" placeholder="Nome Medico e Telefono...">${noteData.contactsMed || ''}</textarea>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold text-primary">Contatti Organizzatore</label>
+                                <label class="form-label fw-bold text-info">Contatti Organizzatore</label>
                                 <textarea id="td-org-contacts" class="form-control" rows="3" placeholder="Nome Organizzatore e Telefono...">${noteData.contactsOrg || ''}</textarea>
                             </div>
                             <div class="col-md-4 mb-3">
@@ -545,11 +1430,22 @@
                                 <textarea id="td-radio" class="form-control" rows="3" placeholder="Es. CH 1: Direttore di Gara...">${noteData.radioPlan || ''}</textarea>
                             </div>
                         </div>
-                        <button class="btn btn-success" onclick="saveNotes()">💾 Salva Tutte le Modifiche</button>
+                        <button class="btn btn-success fw-semibold" onclick="saveNotes()">💾 Salva Tutte le Modifiche</button>
                     </div>
                 </div>
             `;
         }
+
+        window.switchNotesTab = function(mode) {
+            const pub = document.getElementById('notes-panel-public');
+            const priv = document.getElementById('notes-panel-private');
+            document.querySelectorAll('.seg-tab-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.getElementById('tab-btn-' + mode);
+            if (activeBtn) activeBtn.classList.add('active');
+            if (!pub || !priv) return;
+            pub.style.display = (mode === 'public' || mode === 'both') ? '' : 'none';
+            priv.style.display = (mode === 'private' || mode === 'both') ? '' : 'none';
+        };
 
         window.insertDispositivoTemplate = function() {
             const el = document.getElementById('td-dispositivo');
@@ -656,8 +1552,8 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
             <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>
             <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; background: #f4f6f9; padding: 20px; }
-                .doc-sheet { background: #fff; max-width: 210mm; margin: 0 auto; padding: 18mm 18mm 15mm 18mm; box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-radius: 4px; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; background: #0f172a; padding: 24px; }
+                .doc-sheet { background: #fff; max-width: 210mm; margin: 0 auto; padding: 18mm 18mm 15mm 18mm; box-shadow: 0 12px 32px rgba(0,0,0,0.4); border-radius: 6px; }
                 .doc-header { border-bottom: 3px solid #0d6efd; padding-bottom: 12px; margin-bottom: 20px; }
                 .section-title { font-size: 1.05rem; font-weight: 700; text-transform: uppercase; color: #0d6efd; border-left: 4px solid #0d6efd; padding-left: 10px; margin-top: 22px; margin-bottom: 10px; }
                 table th, table td { font-size: 0.9rem; vertical-align: middle !important; }
@@ -671,7 +1567,7 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             </style>
             </head><body>
                 <div class="d-flex justify-content-center gap-3 mb-3 d-print-none">
-                    <button class="btn btn-danger btn-lg fw-bold shadow-sm" onclick="downloadPdfFile()">📥 Scarica File PDF</button>
+                    <button class="btn btn-warning btn-lg fw-bold shadow-sm" onclick="downloadPdfFile()">📥 Scarica File PDF</button>
                     <button class="btn btn-primary btn-lg fw-bold shadow-sm" onclick="window.print()">🖨️ Stampa / Salva PDF</button>
                 </div>
                 
@@ -816,8 +1712,9 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             win.document.close();
         };
 
-                async function showCallRoom() {
+        async function showCallRoom() {
             clearActiveNav();
+            activeRaceIndex = null;
             document.querySelectorAll('#nav-general .nav-link')[1].classList.add('active');
             
             // Get offsets or set defaults
@@ -831,19 +1728,26 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             };
             
             document.getElementById('main-content').innerHTML = `
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2>🕒 Call Room Live Dashboard</h2>
-                    <div class="d-print-none">
-                        <button class="btn btn-outline-secondary fw-bold me-2" onclick="window.print()">🖨️ Stampa Tabellone</button>
-                        <button class="btn btn-primary fw-bold" onclick="syncWise()">🔄 Sincronizza WISE</button>
+                <div class="view-header">
+                    <div>
+                        <div class="view-eyebrow">Monitoraggio Sincronizzato per Serie & Pedana</div>
+                        <h2 class="view-title">🕒 Call Room Live Dashboard</h2>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 d-print-none">
+                        <span id="live-clock" class="stadium-clock">--:--:--</span>
+                        <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="toggleCallRoomSettings()">⚙️ Offset Tempi</button>
+                        <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="window.print()">🖨️ Stampa Tabellone</button>
+                        <button class="btn btn-primary btn-sm fw-bold" onclick="syncWise()">🔄 Sincronizza WISE</button>
                     </div>
                 </div>
-                <hr>
                 
-                <div class="card mb-4 bg-light d-print-none">
-                    <div class="card-header fw-bold">⚙️ Impostazioni Tempi Call Room (Minuti prima della gara)</div>
+                <div class="card mb-4 d-print-none d-none" id="cr-settings-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>⚙️ Impostazioni Tempi Call Room (Minuti prima della gara)</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="toggleCallRoomSettings()">Chiudi ✕</button>
+                    </div>
                     <div class="card-body">
-                        <div class="row text-center fw-bold small mb-2">
+                        <div class="row text-center fw-bold small mb-2 text-muted">
                             <div class="col-md-3 text-start">Categoria</div>
                             <div class="col-md-3">CR 1 (Apertura)</div>
                             <div class="col-md-3">CR 2 (Uscita)</div>
@@ -852,49 +1756,57 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                         
                         <div class="row align-items-center mb-2">
                             <div class="col-md-3 text-start fw-bold">Corse</div>
-                            <div class="col-md-3"><input type="number" id="cr1-corse" class="form-control form-control-sm" value="${offsets.corse.cr1}"></div>
-                            <div class="col-md-3"><input type="number" id="cr2-corse" class="form-control form-control-sm" value="${offsets.corse.cr2}"></div>
-                            <div class="col-md-3"><input type="number" id="track-corse" class="form-control form-control-sm" value="${offsets.corse.track}"></div>
+                            <div class="col-md-3"><input type="number" id="cr1-corse" class="form-control form-control-sm tabular-nums" value="${offsets.corse.cr1}"></div>
+                            <div class="col-md-3"><input type="number" id="cr2-corse" class="form-control form-control-sm tabular-nums" value="${offsets.corse.cr2}"></div>
+                            <div class="col-md-3"><input type="number" id="track-corse" class="form-control form-control-sm tabular-nums" value="${offsets.corse.track}"></div>
                         </div>
                         
                         <div class="row align-items-center mb-2">
                             <div class="col-md-3 text-start fw-bold">Concorsi (Lanci/Estensione)</div>
-                            <div class="col-md-3"><input type="number" id="cr1-concorsi" class="form-control form-control-sm" value="${offsets.concorsi.cr1}"></div>
-                            <div class="col-md-3"><input type="number" id="cr2-concorsi" class="form-control form-control-sm" value="${offsets.concorsi.cr2}"></div>
-                            <div class="col-md-3"><input type="number" id="track-concorsi" class="form-control form-control-sm" value="${offsets.concorsi.track}"></div>
+                            <div class="col-md-3"><input type="number" id="cr1-concorsi" class="form-control form-control-sm tabular-nums" value="${offsets.concorsi.cr1}"></div>
+                            <div class="col-md-3"><input type="number" id="cr2-concorsi" class="form-control form-control-sm tabular-nums" value="${offsets.concorsi.cr2}"></div>
+                            <div class="col-md-3"><input type="number" id="track-concorsi" class="form-control form-control-sm tabular-nums" value="${offsets.concorsi.track}"></div>
                         </div>
                         
                         <div class="row align-items-center mb-2">
                             <div class="col-md-3 text-start fw-bold">Salto in Alto</div>
-                            <div class="col-md-3"><input type="number" id="cr1-alto" class="form-control form-control-sm" value="${offsets.alto.cr1}"></div>
-                            <div class="col-md-3"><input type="number" id="cr2-alto" class="form-control form-control-sm" value="${offsets.alto.cr2}"></div>
-                            <div class="col-md-3"><input type="number" id="track-alto" class="form-control form-control-sm" value="${offsets.alto.track}"></div>
+                            <div class="col-md-3"><input type="number" id="cr1-alto" class="form-control form-control-sm tabular-nums" value="${offsets.alto.cr1}"></div>
+                            <div class="col-md-3"><input type="number" id="cr2-alto" class="form-control form-control-sm tabular-nums" value="${offsets.alto.cr2}"></div>
+                            <div class="col-md-3"><input type="number" id="track-alto" class="form-control form-control-sm tabular-nums" value="${offsets.alto.track}"></div>
                         </div>
                         
                         <div class="row align-items-center mb-3">
                             <div class="col-md-3 text-start fw-bold">Salto con l'Asta</div>
-                            <div class="col-md-3"><input type="number" id="cr1-asta" class="form-control form-control-sm" value="${offsets.asta.cr1}"></div>
-                            <div class="col-md-3"><input type="number" id="cr2-asta" class="form-control form-control-sm" value="${offsets.asta.cr2}"></div>
-                            <div class="col-md-3"><input type="number" id="track-asta" class="form-control form-control-sm" value="${offsets.asta.track}"></div>
+                            <div class="col-md-3"><input type="number" id="cr1-asta" class="form-control form-control-sm tabular-nums" value="${offsets.asta.cr1}"></div>
+                            <div class="col-md-3"><input type="number" id="cr2-asta" class="form-control form-control-sm tabular-nums" value="${offsets.asta.cr2}"></div>
+                            <div class="col-md-3"><input type="number" id="track-asta" class="form-control form-control-sm tabular-nums" value="${offsets.asta.track}"></div>
                         </div>
                         
                         <div class="text-end">
-                            <button class="btn btn-secondary btn-sm" onclick="saveCallRoomSettings()">Salva Parametri</button>
+                            <button class="btn btn-primary btn-sm fw-semibold" onclick="saveCallRoomSettings()">💾 Salva Parametri</button>
                         </div>
                     </div>
                 </div>
+
+                <!-- Live Status Summary Strip -->
+                <div class="row g-3 mb-4 d-print-none" id="cr-summary-strip"></div>
                 
-                <h4 class="mb-3">Tabellone Orari <span id="live-clock" class="badge bg-dark text-white float-end"></span></h4>
                 <div id="cr-table-container"></div>
             `;
             
             renderCallRoomTable();
             callRoomTimer = setInterval(() => {
-                document.getElementById('live-clock').textContent = new Date().toLocaleTimeString('it-IT');
+                const clk = document.getElementById('live-clock');
+                if (clk) clk.textContent = new Date().toLocaleTimeString('it-IT');
                 renderCallRoomTable();
             }, 10000);
             document.getElementById('live-clock').textContent = new Date().toLocaleTimeString('it-IT');
         }
+
+        window.toggleCallRoomSettings = function() {
+            const card = document.getElementById('cr-settings-card');
+            if (card) card.classList.toggle('d-none');
+        };
 
         window.saveCallRoomSettings = function() {
             const types = ['corse', 'concorsi', 'alto', 'asta'];
@@ -941,9 +1853,9 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                 
                 let cat = 'corse';
                 const lower = r.name.toLowerCase();
-                if (lower.includes('asta')) cat = 'asta';
-                else if (lower.includes('alto')) cat = 'alto';
-                else if (['salto', 'lungo', 'triplo', 'peso', 'disco', 'martello', 'giavellotto', 'vortex'].some(k => lower.includes(k))) cat = 'concorsi';
+                if (isPoleVault(r.name)) cat = 'asta';
+                else if (isHighJump(r.name)) cat = 'alto';
+                else if (['salto', 'lungo', 'triplo', 'peso', 'disco', 'martello', 'maniglia', 'giavellotto', 'vortex', 'palla', 'lancio', 'lanci'].some(k => lower.includes(k))) cat = 'concorsi';
                 
                 const o = offsets[cat];
                 const raceIndex = currentMeeting.data.findIndex(d => d.nome_gara === r.name);
@@ -975,8 +1887,8 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                     for (let i = 0; i < heatsCount; i++) {
                         const heatRaceMins = baseRaceMins + (i * heatInterval);
                         const subLabel = heatsCount > 1
-                            ? `<span class="badge bg-primary ms-2">Serie ${i+1}/${heatsCount}</span>`
-                            : (isConfigured ? `<span class="badge bg-secondary ms-2">Serie Unica</span>` : '');
+                            ? `<span class="status-pill status-pill-info ms-2">Serie ${i+1}/${heatsCount}</span>`
+                            : (isConfigured ? `<span class="status-pill status-pill-neutral ms-2">Serie Unica</span>` : '');
                         const athInfo = heatAthletes[i] !== undefined
                             ? `<small class="text-muted ms-1">(${heatAthletes[i]} atl.)</small>`
                             : (heatsCount > 1 ? `<small class="text-muted ms-1">(stima)</small>` : `<small class="text-muted ms-1">(${raceObj.numero_iscritti} atl.)</small>`);
@@ -985,7 +1897,7 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                             raceMins: heatRaceMins,
                             timeStr: formatMinsToTime(heatRaceMins),
                             subTimeNote: heatsCount > 1 ? `Serie ${i+1} (+${i * heatInterval}')` : '',
-                            nameHtml: `<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none text-dark fw-bold">${r.name}</a> ${subLabel} ${athInfo}`,
+                            nameHtml: `<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none fw-bold" style="color: var(--app-text);">${r.name}</a> ${subLabel} ${athInfo}`,
                             o
                         });
                     }
@@ -997,7 +1909,7 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                             try {
                                 const fd = JSON.parse(savedFieldStr);
                                 if (fd.numGroups && fd.numGroups > 1) {
-                                    groupBadge = `<span class="badge bg-info text-dark ms-2">${fd.numGroups} Gruppi (A-${String.fromCharCode(64 + fd.numGroups)})</span>`;
+                                    groupBadge = `<span class="status-pill status-pill-info ms-2">${fd.numGroups} Gruppi (A-${String.fromCharCode(64 + fd.numGroups)})</span>`;
                                 }
                             } catch(e) {}
                         }
@@ -1007,7 +1919,7 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                         timeStr: r.scheduledTime,
                         subTimeNote: '',
                         nameHtml: raceIndex > -1
-                            ? `<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none text-dark fw-bold">${r.name}</a> ${groupBadge}`
+                            ? `<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none fw-bold" style="color: var(--app-text);">${r.name}</a> ${groupBadge}`
                             : `<span class="fw-bold">${r.name}</span>`,
                         o
                     });
@@ -1015,9 +1927,15 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             });
             
             rowsData.sort((a, b) => a.raceMins - b.raceMins);
+
+            let cntCr1 = 0, cntCr2 = 0, cntTrack = 0, cntLive = 0;
             
-            let html = '<table class="table table-bordered text-center align-middle"><thead class="table-dark"><tr><th>Orario Gara</th><th>Gara / Serie</th><th>Apertura CR1</th><th>Apertura CR2</th><th>Ingresso Pista</th><th>Stato</th></tr></thead><tbody>';
+            let html = '<div class="table-container-card"><table class="table text-center align-middle tabular-nums"><thead class="table-dark"><tr><th>Orario Gara</th><th class="text-start">Gara / Serie</th><th>Apertura CR1</th><th>Apertura CR2</th><th>Ingresso Pista</th><th>Stato Live</th></tr></thead><tbody>';
             
+            if (rowsData.length === 0) {
+                html += `<tr><td colspan="6" class="py-4 text-muted">Nessuna gara con orario programmato. Inserisci gli orari nella <a href="#" onclick="showOverview(); return false;">Panoramica Meeting</a> per attivare il tabellone Call Room Live.</td></tr>`;
+            }
+
             rowsData.forEach(item => {
                 const { raceMins, timeStr, subTimeNote, nameHtml, o } = item;
                 const cr1Mins = raceMins - o.cr1;
@@ -1025,37 +1943,79 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                 const trackMins = raceMins - o.track;
                 
                 let rowClass = "";
-                let stato = "-";
+                let statoBadge = `<span class="status-pill status-pill-neutral">IN ATTESA</span>`;
                 
                 if (nowMins >= raceMins) {
                     rowClass = "table-success";
-                    stato = "IN CORSO";
+                    statoBadge = `<span class="status-pill status-pill-success">● IN CORSO</span>`;
+                    cntLive++;
                 } else if (nowMins >= trackMins) {
                     rowClass = "table-warning";
-                    stato = "IN PISTA";
+                    statoBadge = `<span class="status-pill status-pill-warning">IN PISTA</span>`;
+                    cntTrack++;
                 } else if (nowMins >= cr2Mins) {
                     rowClass = "table-danger";
-                    stato = "IN CR 2";
+                    statoBadge = `<span class="status-pill status-pill-danger">IN CR 2</span>`;
+                    cntCr2++;
                 } else if (nowMins >= cr1Mins) {
                     rowClass = "table-info";
-                    stato = "IN CR 1";
+                    statoBadge = `<span class="status-pill status-pill-info">IN CR 1</span>`;
+                    cntCr1++;
                 }
                 
                 html += `<tr class="${rowClass}">
                     <td class="fw-bold fs-5">${timeStr}${subTimeNote ? `<br><small class="text-muted fw-normal" style="font-size:0.75rem;">${subTimeNote}</small>` : ''}</td>
                     <td class="text-start">${nameHtml}</td>
-                    <td>${formatMinsToTime(cr1Mins)} <br><small class="text-muted">(-${o.cr1}')</small></td>
-                    <td>${formatMinsToTime(cr2Mins)} <br><small class="text-muted">(-${o.cr2}')</small></td>
-                    <td>${formatMinsToTime(trackMins)} <br><small class="text-muted">(-${o.track}')</small></td>
-                    <td class="fw-bold">${stato}</td>
+                    <td><strong>${formatMinsToTime(cr1Mins)}</strong> <br><small class="text-muted">(-${o.cr1}')</small></td>
+                    <td><strong>${formatMinsToTime(cr2Mins)}</strong> <br><small class="text-muted">(-${o.cr2}')</small></td>
+                    <td><strong>${formatMinsToTime(trackMins)}</strong> <br><small class="text-muted">(-${o.track}')</small></td>
+                    <td class="fw-bold">${statoBadge}</td>
                 </tr>`;
             });
             
-            html += '</tbody></table>';
+            html += '</tbody></table></div>';
             container.innerHTML = html;
+
+            const strip = document.getElementById('cr-summary-strip');
+            if (strip) {
+                strip.innerHTML = `
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card py-2 px-3" style="--kpi-color: #0ea5e9;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="kpi-label mb-0">In CR 1</span>
+                                <span class="status-pill status-pill-info">${cntCr1}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card py-2 px-3" style="--kpi-color: #f43f5e;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="kpi-label mb-0">In CR 2</span>
+                                <span class="status-pill status-pill-danger">${cntCr2}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card py-2 px-3" style="--kpi-color: #f59e0b;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="kpi-label mb-0">Ingresso Pista</span>
+                                <span class="status-pill status-pill-warning">${cntTrack}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card py-2 px-3" style="--kpi-color: #10b981;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="kpi-label mb-0">In Corso</span>
+                                <span class="status-pill status-pill-success">${cntLive}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
-                window.syncWise = async function() {
+        window.syncWise = async function() {
             if (!currentMeeting.resultsUrl) {
                 alert("URL Risultati non trovato per questo meeting.");
                 return;
@@ -1087,11 +2047,11 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                     }
                 }
                 
-                                alert(`Sincronizzazione completata! ${completedCount} nuove gare concluse.`);
+                alert(`Sincronizzazione completata! ${completedCount} nuove gare concluse.`);
                 await buildSidebar();
                 if (document.getElementById('cr-table-container')) {
                     renderCallRoomTable();
-                } else if (document.getElementById('nav-general').querySelector('button.active').textContent.includes('Panoramica')) {
+                } else if (document.getElementById('nav-general').querySelector('button.active')?.textContent.includes('Panoramica')) {
                     showOverview();
                 }
             } catch (e) {
@@ -1132,16 +2092,19 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             const raceDb = await db.races.get(currentMeeting.id + '_' + race.nome_gara);
             const schedTime = raceDb ? raceDb.scheduledTime : '';
             
-            let html = `<div class="d-flex justify-content-between align-items-center">
-                <h2>${race.nome_gara}</h2>
+            let html = `<div class="view-header">
                 <div>
-                    <span id="est-time-${index}" class="badge bg-info fs-6 me-2">⏱ Stima: ${Math.round(estTime)} min</span>
+                    <div class="view-eyebrow">${field ? 'Concorsi · Regola WA TR 25' : 'Corse su Pista · Regola WA TR 20'} · ${race.numero_iscritti} Iscritti</div>
+                    <h2 class="view-title">${race.nome_gara}</h2>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span id="est-time-${index}" class="status-pill status-pill-info fs-6 tabular-nums">⏱ Stima: ${Math.round(estTime)} min</span>
                     <div class="input-group input-group-sm d-inline-flex w-auto d-print-none">
-                        <span class="input-group-text">Orario (1ª Serie/Gara):</span>
-                        <input type="time" class="form-control" id="sched-time-${index}" value="${schedTime}" onchange="saveRaceTime(\`${race.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this, ${index})">
+                        <span class="input-group-text fw-semibold">Orario (1ª Serie/Gara):</span>
+                        <input type="time" class="form-control tabular-nums fw-bold" id="sched-time-${index}" value="${schedTime}" onchange="saveRaceTime(\`${race.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this, ${index})">
                     </div>
                 </div>
-            </div><hr>`;
+            </div>`;
             
             if (race.numero_iscritti === 0) {
                 html += `<div class="alert alert-info">Nessun iscritto a questa gara.</div>`;
@@ -1150,8 +2113,7 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             }
 
             if (field) {
-                const lower = race.nome_gara.toLowerCase();
-                const vertical = lower.includes('alto') || lower.includes('asta');
+                const vertical = isVerticalJump(race.nome_gara);
                 const triple = isTripleJump(race.nome_gara);
                 const selMethod = savedFieldObj && savedFieldObj.method ? savedFieldObj.method : 'inverse';
                 const selGroups = savedFieldObj && savedFieldObj.numGroups ? parseInt(savedFieldObj.numGroups) : 1;
@@ -1161,17 +2123,17 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                 
                 html += `
                 <div class="card p-3 mb-4 d-print-none">
-                    <h5>Impostazioni Pedana (WA TR 25 ${vertical ? '& TR 26' : ''}${triple ? '& TR 30' : ''})</h5>
+                    <h5 class="fw-bold mb-3">Impostazioni Pedana (WA TR 25 ${vertical ? '& TR 26' : ''}${triple ? '& TR 30' : ''})</h5>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Criterio Ordine di Partenza:</label>
+                            <label class="form-label fw-semibold small text-muted">Criterio Ordine di Partenza:</label>
                             <select id="field-order-${index}" class="form-select">
                                 <option value="inverse" ${selMethod === 'inverse' ? 'selected' : ''}>Ordine Inverso di Accredito (Consigliato Finali)</option>
                                 <option value="random" ${selMethod === 'random' ? 'selected' : ''}>Ordine Casuale (Consigliato Qualificazioni)</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Suddivisione in Gruppi (per Fasce di Accredito):</label>
+                            <label class="form-label fw-semibold small text-muted">Suddivisione in Gruppi (per Fasce di Accredito):</label>
                             <select id="field-groups-${index}" class="form-select">
                                 <option value="1" ${selGroups === 1 ? 'selected' : ''}>Gruppo Unico (${race.numero_iscritti} atleti)</option>
                                 <option value="2" ${selGroups === 2 ? 'selected' : ''}>2 Gruppi — Gruppo A (Migliori) e Gruppo B (~${Math.ceil(race.numero_iscritti/2)} atl./gruppo)</option>
@@ -1186,11 +2148,11 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                     html += `
                     <div class="row mb-3 p-2 bg-light border rounded mx-0">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-primary">📐 1ª Battuta Salto Triplo:</label>
+                            <label class="form-label fw-bold text-info">📐 1ª Battuta Salto Triplo:</label>
                             <input type="text" id="battuta1-${index}" class="form-control" value="${selBatt1}" placeholder="Es. 11m (o 9m)" onchange="saveTripleJumpBoard(${index}, 1, this.value)">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-primary">📐 2ª Battuta Salto Triplo (Opzionale - Max 2):</label>
+                            <label class="form-label fw-bold text-info">📐 2ª Battuta Salto Triplo (Opzionale - Max 2):</label>
                             <input type="text" id="battuta2-${index}" class="form-control" value="${selBatt2}" placeholder="Es. 13m (lascia vuoto se battuta unica)" onchange="saveTripleJumpBoard(${index}, 2, this.value)">
                         </div>
                         <div class="col-12 mt-1">
@@ -1202,13 +2164,13 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                 if (vertical) {
                     html += `
                     <div class="mb-3">
-                        <label class="form-label">Progressione Misure (TR 26.1):</label>
-                        <input type="text" id="progression-${index}" class="form-control" value="${selProg}" placeholder="Es. 1.80 1.85 1.90 1.93" onkeyup="validateProgression(this, '${race.nome_gara.replace(/'/g, "\\'")}'); saveFieldConfig(${index}, { progression: this.value.trim() })">
+                        <label class="form-label fw-semibold small text-muted">Progressione Misure (TR 26.1):</label>
+                        <input type="text" id="progression-${index}" class="form-control font-monospace" value="${selProg}" placeholder="Es. 1.80 1.85 1.90 1.93" onkeyup="validateProgression(this, '${race.nome_gara.replace(/'/g, "\\'")}'); saveFieldConfig(${index}, { progression: this.value.trim() })">
                         <div id="progression-feedback-${index}" class="form-text">Inserisci le misure separate da spazio o virgola. Saranno stampate sul foglio gara e nel Dispositivo Tecnico.</div>
                     </div>`;
                 }
                     
-                html += `<div class="d-flex gap-2"><button class="btn btn-primary" onclick="generateField(${index})">Genera Start List</button><button class="btn btn-outline-primary" onclick="printAttrezzi(${index})">🛠️ Foglio Attrezzi (DT)</button></div>
+                html += `<div class="d-flex gap-2"><button class="btn btn-primary fw-bold" onclick="generateField(${index})">Genera Start List</button><button class="btn btn-outline-info fw-semibold" onclick="printAttrezzi(${index})">🛠️ Foglio Attrezzi (DT)</button></div>
                 </div>
                 <div id="results-${index}"></div>
                 `;
@@ -1222,20 +2184,20 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                 
                 html += `
                 <div class="card p-3 mb-4 d-print-none">
-                    <h5>Impostazioni Batterie/Serie (WA TR 20)</h5>
+                    <h5 class="fw-bold mb-3">Impostazioni Batterie/Serie (WA TR 20)</h5>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">${middleDist ? 'Atleti Max per serie:' : 'Corsie attive (es. 1,2,3,4,5,6):'}</label>
-                            <input type="text" id="lanes-${index}" class="form-control" value="${defaultLanesVal}">
+                            <label class="form-label fw-semibold small text-muted">${middleDist ? 'Atleti Max per serie:' : 'Corsie attive (es. 1,2,3,4,5,6):'}</label>
+                            <input type="text" id="lanes-${index}" class="form-control font-monospace fw-bold" value="${defaultLanesVal}">
                             <small class="text-muted">${middleDist ? 'Massimo consigliato per mezzofondo: 12-15' : 'Elenca le corsie utilizzabili separate da virgola (es. 2,3,4,5,6,7,8 se la 1 è rotta)'}</small>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Intervallo tra le serie (minuti):</label>
-                            <input type="number" id="heat-interval-${index}" class="form-control" min="1" max="120" value="${defaultIntervalVal}">
+                            <label class="form-label fw-semibold small text-muted">Intervallo tra le serie (minuti):</label>
+                            <input type="number" id="heat-interval-${index}" class="form-control tabular-nums fw-bold" min="1" max="120" value="${defaultIntervalVal}">
                             <small class="text-muted">Minuti tra una serie e la successiva per esplodere gli orari in Call Room e sul Foglio Gara.</small>
                         </div>
                     </div>
-                    <button class="btn btn-primary" onclick="generateTrack(${index}, ${middleDist})">Genera Serie e Orari Call Room (Zig-Zag)</button>
+                    <button class="btn btn-primary fw-bold" onclick="generateTrack(${index}, ${middleDist})">Genera Serie e Orari Call Room (Zig-Zag)</button>
                 </div>
                 <div id="results-${index}"></div>
                 `;
@@ -1270,21 +2232,27 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                 
         window.showAthleteSearch = function(btn) {
             clearActiveNav();
+            activeRaceIndex = null;
             if(btn) btn.classList.add('active');
             else document.querySelectorAll('#nav-general .nav-link')[5].classList.add('active');
             
             let h = `
-            <h2>🔍 Ricerca Atleti & Doping</h2>
-            <hr>
-            <div class="row">
+            <div class="view-header">
+                <div>
+                    <div class="view-eyebrow">Database Federali & Integrità</div>
+                    <h2 class="view-title">🔍 Ricerca Atleti & Doping (AIU)</h2>
+                </div>
+            </div>
+            <div class="row g-4">
                 <div class="col-md-6">
-                    <div class="card mb-4 border-primary shadow-sm">
-                        <div class="card-header bg-primary text-white fw-bold">
-                            Ricerca Atleti FIDAL
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">Ricerca Atleti FIDAL</span>
+                            <span class="status-pill status-pill-info">Italia</span>
                         </div>
-                        <div class="card-body">
-                            <p>Accedi al portale ufficiale della Federazione Italiana di Atletica Leggera per consultare la scheda, le prestazioni e lo storico degli atleti tesserati.</p>
-                            <a href="https://www.fidal.it/atleti.php" target="_blank" class="btn btn-outline-primary w-100 fw-bold">
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <p class="text-muted">Accedi al portale ufficiale della Federazione Italiana di Atletica Leggera per consultare la scheda, le prestazioni e lo storico degli atleti tesserati.</p>
+                            <a href="https://www.fidal.it/atleti.php" target="_blank" class="btn btn-primary w-100 fw-bold">
                                 🔗 Vai alla Ricerca FIDAL
                             </a>
                         </div>
@@ -1292,13 +2260,14 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                 </div>
                 
                 <div class="col-md-6">
-                    <div class="card mb-4 border-info shadow-sm">
-                        <div class="card-header bg-info text-white fw-bold">
-                            World Athletics Rankings
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">World Athletics Rankings</span>
+                            <span class="status-pill status-pill-warning">Global</span>
                         </div>
-                        <div class="card-body">
-                            <p>Cerca i profili internazionali degli atleti, i punteggi ranking WA (World Rankings), record personali e le posizioni globali e continentali.</p>
-                            <a href="https://worldathletics.org/athletes" target="_blank" class="btn btn-outline-info w-100 fw-bold text-dark">
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <p class="text-muted">Cerca i profili internazionali degli atleti, i punteggi ranking WA (World Rankings), record personali e le posizioni globali e continentali.</p>
+                            <a href="https://worldathletics.org/athletes" target="_blank" class="btn btn-outline-info w-100 fw-bold">
                                 🌍 Vai a WA Athlete Search
                             </a>
                         </div>
@@ -1306,15 +2275,16 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                 </div>
             </div>
             
-            <div class="row mt-2">
+            <div class="row mt-4">
                 <div class="col-12">
-                    <div class="card border-danger shadow-sm">
-                        <div class="card-header bg-danger text-white fw-bold">
-                            🚨 Sanzioni Disciplinari e Doping (AIU)
+                    <div class="card" style="border-color: rgba(244, 63, 94, 0.45);">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-danger">🚨 Sanzioni Disciplinari e Doping (AIU)</span>
+                            <span class="status-pill status-pill-danger">Athletics Integrity Unit</span>
                         </div>
                         <div class="card-body">
                             <p>In qualità di Delegato Tecnico potresti dover verificare se un atleta internazionale è sospeso o ineleggibile per questioni di doping (Regole Antidoping WA).</p>
-                            <p>La <strong>Athletics Integrity Unit (AIU)</strong> mantiene e aggiorna pubblicamente la <em>Global List of Ineligible Persons</em> (lista globale delle persone ineleggibili).</p>
+                            <p class="text-muted">La <strong>Athletics Integrity Unit (AIU)</strong> mantiene e aggiorna pubblicamente la <em>Global List of Ineligible Persons</em> (lista globale delle persone ineleggibili).</p>
                             <a href="https://www.athleticsintegrity.org/disciplinary-process/global-list-of-ineligible-persons" target="_blank" class="btn btn-danger fw-bold">
                                 ⚖️ Consulta la Lista Globale AIU
                             </a>
@@ -1328,17 +2298,23 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
 
         window.showShoeControl = function(btn) {
             clearActiveNav();
+            activeRaceIndex = null;
             if(btn) btn.classList.add('active');
-            else document.querySelectorAll('#nav-general .nav-link')[3].classList.add('active');
+            else document.querySelectorAll('#nav-general .nav-link')[4].classList.add('active');
             
             let h = `
-            <h2>👟 Controllo Scarpe (Shoe Compliance TR 5)</h2>
-            <hr>
-            <div class="row">
+            <div class="view-header">
+                <div>
+                    <div class="view-eyebrow">Regola Tecnica WA TR 5</div>
+                    <h2 class="view-title">👟 Controllo Scarpe (Shoe Compliance)</h2>
+                </div>
+            </div>
+            <div class="row g-4">
                 <div class="col-md-7">
-                    <div class="card mb-4 border-success shadow-sm">
-                        <div class="card-header bg-success text-white fw-bold">
-                            Portale Ufficiale World Athletics
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">Portale Ufficiale World Athletics</span>
+                            <span class="status-pill status-pill-success">CertCheck Live</span>
                         </div>
                         <div class="card-body">
                             <p>Utilizza il database ufficiale di World Athletics per verificare istantaneamente se il modello di scarpa utilizzato dall'atleta è approvato per la competizione.</p>
@@ -1350,31 +2326,31 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                     </div>
                 </div>
                 <div class="col-md-5">
-                    <div class="card border-info shadow-sm">
-                        <div class="card-header bg-info text-white fw-bold">
-                            Regole Spessori (Sintesi TR 5)
+                    <div class="card h-100">
+                        <div class="card-header fw-bold">
+                            Regole Spessori Suola (Sintesi TR 5)
                         </div>
                         <div class="card-body p-0">
                             <ul class="list-group list-group-flush small">
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-3">
                                     <strong>Gare su Pista (tutte)</strong>
-                                    <span class="badge bg-primary rounded-pill">Max 20 mm</span>
+                                    <span class="status-pill status-pill-info tabular-nums">Max 20 mm</span>
                                 </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-3">
                                     <strong>Salto Triplo</strong>
-                                    <span class="badge bg-primary rounded-pill">Max 25 mm</span>
+                                    <span class="status-pill status-pill-warning tabular-nums">Max 25 mm</span>
                                 </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-3">
                                     <strong>Altri Concorsi (Lungo, Alto, Asta)</strong>
-                                    <span class="badge bg-primary rounded-pill">Max 20 mm</span>
+                                    <span class="status-pill status-pill-info tabular-nums">Max 20 mm</span>
                                 </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-3">
                                     <strong>Strada e Cross</strong>
-                                    <span class="badge bg-primary rounded-pill">Max 40 mm</span>
+                                    <span class="status-pill status-pill-success tabular-nums">Max 40 mm</span>
                                 </li>
                             </ul>
-                            <div class="p-2 bg-light border-top">
-                                <small class="text-muted"><i class="fw-bold text-warning">Nota:</i> Dal 1 Novembre 2024 è in vigore la regola armonizzata a 20mm per tutte le gare su pista (velocità e mezzofondo).</small>
+                            <div class="p-3 bg-light border-top">
+                                <small class="text-muted"><strong class="text-warning">Nota:</strong> Dal 1 Novembre 2024 è in vigore la regola armonizzata a 20mm per tutte le gare su pista (velocità e mezzofondo).</small>
                             </div>
                         </div>
                     </div>
@@ -1482,11 +2458,6 @@ function timeToSeconds(t) {
             return 15;
         }
 
-
-
-
-
-        
         window.printAttrezzi = function(index) {
             const race = currentMeeting.data[index];
             const savedFieldStr = localStorage.getItem('field_data_' + currentMeeting.id + '_' + index);
@@ -1571,9 +2542,9 @@ function timeToSeconds(t) {
 
         function parseAccreditoFloat(str) {
             if (!str) return -1;
-            const cleaned = String(str).replace(',', '.').trim();
-            const v = parseFloat(cleaned);
-            return isNaN(v) ? -1 : v;
+            const clean = str.trim().replace(',', '.');
+            const val = parseFloat(clean);
+            return isNaN(val) ? -1 : val;
         }
 
         function generateField(index) {
@@ -1583,8 +2554,7 @@ function timeToSeconds(t) {
             const method = methodEl ? methodEl.value : (prevCfg.method || 'inverse');
             const groupsEl = document.getElementById(`field-groups-${index}`);
             const numGroups = groupsEl ? (parseInt(groupsEl.value) || 1) : (prevCfg.numGroups || 1);
-            const lower = race.nome_gara.toLowerCase();
-            const isVertical = lower.includes('alto') || lower.includes('asta');
+            const isVertical = isVerticalJump(race.nome_gara);
             const isTriple = isTripleJump(race.nome_gara);
             const progInput = document.getElementById(`progression-${index}`);
             const progValue = progInput ? progInput.value.trim() : (prevCfg.progression || '');
@@ -1598,7 +2568,6 @@ function timeToSeconds(t) {
             // Split into groups by accreditation tiers (Gruppo A = best marks, Gruppo B = next tier, etc.)
             let groups = [];
             if (numGroups > 1 && allAthletes.length > 1) {
-                // Sort best to worst first (highest val first; -1 goes to the end)
                 allAthletes.sort((a, b) => b.val - a.val);
                 const actualGroups = Math.min(numGroups, allAthletes.length);
                 const baseSize = Math.floor(allAthletes.length / actualGroups);
@@ -1616,7 +2585,7 @@ function timeToSeconds(t) {
             // Apply starting order inside each group
             groups.forEach(grp => {
                 if (method === 'inverse') {
-                    grp.sort((a, b) => a.val - b.val); // lowest to highest inside the group (best jumps/throws last)
+                    grp.sort((a, b) => a.val - b.val);
                 } else {
                     grp.sort(() => Math.random() - 0.5);
                 }
@@ -1636,11 +2605,11 @@ function timeToSeconds(t) {
                 ? `<div class="alert alert-info py-2 mb-3"><strong>📐 Battute Salto Triplo (Max 2):</strong> ${activeBoards.length > 0 ? `<span class="badge bg-primary fs-6 ms-1">${activeBoards.join('</span> <span class="badge bg-primary fs-6 ms-1">')}</span>` : '<span class="text-muted">Nessuna battuta specificata</span>'}</div>`
                 : '';
             
-            let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
-                <h4>Foglio Gara (Start List)${groups.length > 1 ? ` — ${groups.length} Gruppi per Fasce di Accredito` : ''}</h4>
+            let html = `<div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
+                <h4 class="fw-bold mb-0">Foglio Gara (Start List)${groups.length > 1 ? ` — ${groups.length} Gruppi per Fasce di Accredito` : ''}</h4>
                 <div>
-                    <button class="btn btn-outline-primary btn-sm me-2" onclick="printAttrezzi(${index})">🛠️ Foglio Attrezzi (DT)</button>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨️ Stampa</button>
+                    <button class="btn btn-outline-info btn-sm me-2 fw-semibold" onclick="printAttrezzi(${index})">🛠️ Foglio Attrezzi (DT)</button>
+                    <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="window.print()">🖨️ Stampa</button>
                 </div>
             </div>
             ${tripleBanner}`;
@@ -1662,12 +2631,12 @@ function timeToSeconds(t) {
                     const rangeInfo = validVals.length > 0 ? ` — Accrediti: ${validVals[0]} ÷ ${validVals[validVals.length - 1]}` : '';
                     html += `
                     <div class="d-flex justify-content-between align-items-center mt-3 mb-2 p-2 bg-light border rounded">
-                        <h5 class="mb-0 text-primary fw-bold">${race.nome_gara} — Gruppo ${groupLetter} (${gIdx === 0 ? '1ª Fascia - Migliori Accrediti' : `${gIdx + 1}ª Fascia`}${rangeInfo})</h5>
-                        <span class="badge bg-dark">${grp.length} Atleti</span>
+                        <h5 class="mb-0 text-info fw-bold">${race.nome_gara} — Gruppo ${groupLetter} (${gIdx === 0 ? '1ª Fascia - Migliori Accrediti' : `${gIdx + 1}ª Fascia`}${rangeInfo})</h5>
+                        <span class="status-pill status-pill-neutral">${grp.length} Atleti</span>
                     </div>`;
                 }
                 
-                html += `<table class="table table-bordered table-sm" style="font-size: 0.85rem;">
+                html += `<div class="table-container-card mb-3"><table class="table table-bordered table-sm tabular-nums" style="font-size: 0.85rem;">
                     <thead class="table-light">`;
                 
                 if (isVertical) {
@@ -1684,14 +2653,14 @@ function timeToSeconds(t) {
                 }
                 
                 grp.forEach((a, i) => {
-                    const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
+                    const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none fw-bold" style="color: var(--app-text);">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
                     const defaultBoardCell = isTriple ? `<td class="text-center fw-bold">${activeBoards.length === 1 ? activeBoards[0] : ''}</td>` : '';
                     html += `<tr>
                         <td><strong>${i+1}</strong></td>
                         <td>${a.pettorale}</td>
                         <td>${athleteName}</td>
-                        <td><small>${(a.societa || '').substring(0,20)}</small></td>
-                        <td>${a.accredito}</td>${defaultBoardCell}`;
+                        <td><small class="text-muted">${(a.societa || '').substring(0,20)}</small></td>
+                        <td class="fw-semibold">${a.accredito}</td>${defaultBoardCell}`;
                     
                     if (isVertical) {
                         for(let attempt=0; attempt<progCols; attempt++) {
@@ -1711,7 +2680,7 @@ function timeToSeconds(t) {
                     
                     html += `</tr>`;
                 });
-                html += `</tbody></table>`;
+                html += `</tbody></table></div>`;
             });
             
             document.getElementById(`results-${index}`).innerHTML = html;
@@ -1814,20 +2783,20 @@ function timeToSeconds(t) {
                 baseRaceMins = hh * 60 + mm;
             }
             
-            let html = `<div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
-                <h4>Composizione Serie (${heatsCount} Serie Generate — ${isMiddle ? `Max ${maxLanes} atl./serie` : `${activeLanes.length} corsie attive`})</h4>
-                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨️ Stampa</button>
+            let html = `<div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
+                <h4 class="fw-bold mb-0">Composizione Serie (${heatsCount} Serie Generate — ${isMiddle ? `Max ${maxLanes} atl./serie` : `${activeLanes.length} corsie attive`})</h4>
+                <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="window.print()">🖨️ Stampa</button>
             </div>`;
             
             if (baseRaceMins !== null) {
                 html += `
-                <div class="card border-primary mb-4">
-                    <div class="card-header bg-primary text-white fw-bold py-2 d-flex justify-content-between align-items-center">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <span>🕒 Orari Esplosi Call Room & Partenza per Serie (Intervallo: ${heatInterval} min)</span>
-                        <span class="badge bg-light text-dark">1ª Serie: ${schedTime}</span>
+                        <span class="status-pill status-pill-warning tabular-nums">1ª Serie: ${schedTime}</span>
                     </div>
                     <div class="card-body p-0">
-                        <table class="table table-sm table-bordered text-center align-middle mb-0" style="font-size: 0.85rem;">
+                        <table class="table table-sm table-bordered text-center align-middle mb-0 tabular-nums" style="font-size: 0.85rem;">
                             <thead class="table-light">
                                 <tr>
                                     <th>Serie</th>
@@ -1868,32 +2837,32 @@ function timeToSeconds(t) {
             // Filter basePref by activeLanes
             let pref = basePref.filter(l => activeLanes.includes(l));
             activeLanes.forEach(l => {
-                if (!pref.includes(l)) pref.push(l); // fallback for unusual lanes
+                if (!pref.includes(l)) pref.push(l);
             });
+            const topPrefSet = new Set(pref.slice(0, Math.min(4, pref.length)));
             
             heats.forEach((h, i) => {
                 let heatTimingBadges = '';
                 if (baseRaceMins !== null) {
                     const hMins = baseRaceMins + (i * heatInterval);
                     heatTimingBadges = `
-                        <div>
-                            <span class="badge bg-info text-dark me-1">CR1: ${formatMinsToTime(hMins - cr1Off)}</span>
-                            <span class="badge bg-danger me-1">CR2: ${formatMinsToTime(hMins - cr2Off)}</span>
-                            <span class="badge bg-warning text-dark me-1">Pista: ${formatMinsToTime(hMins - trackOff)}</span>
-                            <span class="badge bg-dark fs-6">🕒 Partenza: ${formatMinsToTime(hMins)}</span>
+                        <div class="d-flex flex-wrap gap-1 tabular-nums">
+                            <span class="status-pill status-pill-info">CR1: ${formatMinsToTime(hMins - cr1Off)}</span>
+                            <span class="status-pill status-pill-danger">CR2: ${formatMinsToTime(hMins - cr2Off)}</span>
+                            <span class="status-pill status-pill-warning">Pista: ${formatMinsToTime(hMins - trackOff)}</span>
+                            <span class="status-pill status-pill-success">🕒 Start: ${formatMinsToTime(hMins)}</span>
                         </div>`;
                 }
                 
-                html += `<div class="mt-4" style="page-break-inside: avoid;">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <h5 class="mb-0">Serie ${i+1} <small class="text-muted">(${h.length} atleti)</small></h5>
+                html += `<div class="mt-4 table-container-card" style="page-break-inside: avoid;">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <h5 class="mb-0 fw-bold">Serie ${i+1} <small class="text-muted fw-normal">(${h.length} atleti)</small></h5>
                         ${heatTimingBadges}
                     </div>
-                    <table class="table table-bordered table-sm">
-                    <thead class="table-light"><tr><th>${isMiddle ? 'Pos' : 'Corsia'}</th><th>Pett</th><th>Atleta</th><th>Società</th><th>SB</th><th width="15%">Risultato</th><th width="5%">Pos</th><th class="d-print-none" width="10%">Sposta</th></tr></thead><tbody>`;
+                    <table class="table table-bordered table-sm align-middle tabular-nums">
+                    <thead class="table-light"><tr><th width="8%">${isMiddle ? 'Pos' : 'Corsia'}</th><th width="8%">Pett</th><th>Atleta</th><th>Società</th><th width="10%">SB</th><th width="15%">Risultato</th><th width="6%">Pos</th><th class="d-print-none" width="10%">Sposta</th></tr></thead><tbody>`;
                 
                 if (!isMiddle) {
-                    // Assign lanes
                     h.forEach((a, j) => {
                         a.lane = pref[j] || '-';
                     });
@@ -1905,16 +2874,25 @@ function timeToSeconds(t) {
                 }
                 
                 h.forEach(a => {
-                    const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none text-dark fw-bold">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
+                    const athleteName = a.fidal_link ? `<a href="${a.fidal_link}" target="_blank" class="text-decoration-none fw-bold" style="color: var(--app-text);">${a.nominativo}</a>` : `<span class="fw-bold">${a.nominativo}</span>`;
+                    const isPrefLane = !isMiddle && topPrefSet.has(a.lane);
                     
-                    // Heat selector
                     let selectHtml = `<select class="form-select form-select-sm" onchange="moveAthlete(${index}, ${i}, '${a.pettorale}', this)">`;
                     for(let x=0; x<heatsCount; x++) {
                         selectHtml += `<option value="${x}" ${x===i ? 'selected' : ''}>S ${x+1}</option>`;
                     }
                     selectHtml += `</select>`;
                     
-                    html += `<tr><td><strong>${a.lane}</strong></td><td>${a.pettorale}</td><td>${athleteName}</td><td><small>${(a.societa || '').substring(0,20)}</small></td><td>${a.accredito}</td><td></td><td></td><td class="d-print-none">${selectHtml}</td></tr>`;
+                    html += `<tr>
+                        <td><span class="lane-badge ${isPrefLane ? 'pref-lane' : ''}">${a.lane}</span></td>
+                        <td class="font-monospace">${a.pettorale}</td>
+                        <td>${athleteName}</td>
+                        <td><small class="text-muted">${(a.societa || '').substring(0,24)}</small></td>
+                        <td class="font-monospace fw-semibold">${a.accredito}</td>
+                        <td></td>
+                        <td></td>
+                        <td class="d-print-none">${selectHtml}</td>
+                    </tr>`;
                 });
                 
                 html += `</tbody></table></div>`;
@@ -1922,29 +2900,36 @@ function timeToSeconds(t) {
             
             if (isMiddle) {
                 const numLaps = getLaps(race.nome_gara);
+                const savedLapStyle = localStorage.getItem('lap_style_' + currentMeeting.id + '_' + index) || 'normal';
+                const lapStyleEl = document.getElementById('lap-style-' + index);
+                const lapStyle = lapStyleEl ? lapStyleEl.value : savedLapStyle;
+                localStorage.setItem('lap_style_' + currentMeeting.id + '_' + index, lapStyle);
+
                 html += `<div style="page-break-before: always;" class="mt-5"></div>
-                <div class="d-flex justify-content-between align-items-center mb-2 d-print-none">
-                    <h4 class="mt-4 text-primary">Foglio Contagiri (${race.nome_gara})</h4>
-                    <div>
-                        <a href="https://matteomircoli.it/contagiristatico/garav2.html" target="_blank" class="btn btn-outline-success btn-sm mt-4 me-2">⏱ Contagiri Elettronico</a>
-                        <button class="btn btn-outline-primary btn-sm mt-4" onclick="window.print()">🖨️ Stampa Foglio Cartaceo</button>
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 mt-4 d-print-none gap-2">
+                    <h4 class="mb-0 fw-bold" style="color: var(--app-accent-fg);">🔄 Foglio Contagiri (${race.nome_gara})</h4>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <select id="lap-style-${index}" class="form-select form-select-sm w-auto" onchange="renderTrackHeats(${index})">
+                            <option value="normal" ${lapStyle === 'normal' ? 'selected' : ''}>Stile Normale FIDAL (Griglia Vuota)</option>
+                            <option value="wa" ${lapStyle === 'wa' ? 'selected' : ''}>Stile World Athletics (Precompilato)</option>
+                        </select>
+                        <a href="https://matteomircoli.it/contagiristatico/garav2.html" target="_blank" class="btn btn-outline-success btn-sm fw-semibold">⏱ Contagiri Elettronico</a>
+                        <button class="btn btn-outline-primary btn-sm fw-semibold" onclick="window.print()">🖨️ Stampa Foglio Cartaceo</button>
                     </div>
                 </div>
                 `;
-                const lapStyleEl = document.getElementById('lap-style-' + index);
-                const lapStyle = lapStyleEl ? lapStyleEl.value : 'normal';
 
                 html += `<h4 class="mt-4 d-none d-print-block">Foglio Contagiri - ${race.nome_gara}</h4>`;
 
                 if (lapStyle === 'normal') {
                     html += `
-                    <div class="d-print-none alert alert-info small"><strong>Stile Normale:</strong> Griglia vuota. Il giudice segna a mano il pettorale in base alla posizione (Pos).</div>`;
+                    <div class="d-print-none alert alert-info py-2 small"><strong>Stile Normale:</strong> Griglia vuota. Il giudice segna a mano il pettorale in base alla posizione (Pos).</div>`;
                     
                     heats.forEach((h, i) => {
                         if (h.length === 0) return;
-                        html += `<div class="mt-4" style="page-break-inside: avoid;">
-                            <h5>Contagiri - Serie ${i+1}</h5>
-                            <table class="table table-bordered table-sm text-center" style="font-size: 0.8rem;">
+                        html += `<div class="mt-3 table-container-card" style="page-break-inside: avoid;">
+                            <div class="card-header fw-bold">Contagiri - Serie ${i+1}</div>
+                            <table class="table table-bordered table-sm text-center tabular-nums" style="font-size: 0.8rem;">
                             <thead class="table-light"><tr><th width="5%">Pos</th><th width="10%">Pettorale</th>`;
                         for(let lap=numLaps; lap>=2; lap--) {
                             html += `<th>-${lap}</th>`;
@@ -1964,15 +2949,15 @@ function timeToSeconds(t) {
                     });
                 } else {
                     html += `
-                    <div class="d-print-none alert alert-info small"><strong>Stile World Athletics:</strong> Griglia precompilata con Pettorali/Nomi. Il giudice spunta il giro al passaggio dell'atleta.</div>`;
+                    <div class="d-print-none alert alert-info py-2 small"><strong>Stile World Athletics:</strong> Griglia precompilata con Pettorali/Nomi. Il giudice spunta il giro al passaggio dell'atleta.</div>`;
                     
                     heats.forEach((h, i) => {
                         if (h.length === 0) return;
                         const sortedH = [...h].sort((a,b) => (a.pettorale || '999').localeCompare(b.pettorale || '999'));
                         
-                        html += `<div class="mt-4" style="page-break-inside: avoid;">
-                            <h5>Contagiri - Serie ${i+1}</h5>
-                            <table class="table table-bordered table-sm text-center align-middle" style="font-size: 0.8rem;">
+                        html += `<div class="mt-3 table-container-card" style="page-break-inside: avoid;">
+                            <div class="card-header fw-bold">Contagiri - Serie ${i+1}</div>
+                            <table class="table table-bordered table-sm text-center align-middle tabular-nums" style="font-size: 0.8rem;">
                             <thead class="table-light"><tr><th width="8%">Pett.</th><th width="15%">Atleta</th>`;
                         for(let lap=numLaps; lap>=2; lap--) {
                             html += `<th>-${lap}</th>`;
