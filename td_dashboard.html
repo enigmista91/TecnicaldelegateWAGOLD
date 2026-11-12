@@ -674,6 +674,139 @@
         }
 
         /* ==========================================================================
+           GANTT CHART & MULTI-DAY TIMELINE STYLES
+           ========================================================================== */
+        .gantt-wrapper {
+            background-color: var(--app-surface);
+            border: 1px solid var(--app-border);
+            border-radius: 12px;
+            overflow-x: auto;
+            box-shadow: var(--app-shadow);
+        }
+        .gantt-Grid {
+            min-width: 780px;
+        }
+        .gantt-header-row {
+            display: flex;
+            background-color: var(--app-surface-alt);
+            border-bottom: 1px solid var(--app-border-strong);
+            font-size: 0.73rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--app-muted);
+        }
+        .gantt-label-col {
+            width: 290px;
+            min-width: 290px;
+            max-width: 290px;
+            padding: 0.65rem 0.9rem;
+            border-right: 1px solid var(--app-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .gantt-timeline-col {
+            flex: 1;
+            position: relative;
+            min-height: 48px;
+        }
+        .gantt-row {
+            display: flex;
+            border-bottom: 1px solid var(--app-border);
+            transition: background-color 0.12s ease;
+        }
+        .gantt-row:last-child {
+            border-bottom: none;
+        }
+        .gantt-row:hover {
+            background-color: var(--app-surface-hover);
+        }
+        .gantt-tick {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border-left: 1px dashed rgba(148, 163, 184, 0.18);
+            font-size: 0.7rem;
+            padding-left: 4px;
+            padding-top: 8px;
+            color: var(--app-muted);
+            font-variant-numeric: tabular-nums;
+            pointer-events: none;
+        }
+        .gantt-gridline {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border-left: 1px dashed rgba(148, 163, 184, 0.12);
+            pointer-events: none;
+        }
+        .gantt-bar {
+            position: absolute;
+            top: 9px;
+            bottom: 9px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            padding: 0 0.55rem;
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+            font-variant-numeric: tabular-nums;
+            z-index: 2;
+            min-width: 6px;
+        }
+        .gantt-bar-rettilineo {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border: 1px solid #fbbf24;
+        }
+        .gantt-bar-anello {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border: 1px solid #60a5fa;
+        }
+        .gantt-bar-salti {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: 1px solid #34d399;
+        }
+        .gantt-bar-lanci {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            border: 1px solid #a78bfa;
+        }
+        .gantt-bar-overlap {
+            box-shadow: 0 0 0 2px #f43f5e, 0 2px 8px rgba(244, 63, 94, 0.45) !important;
+        }
+        .gantt-end-tag {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--app-text);
+            padding-left: 6px;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+            z-index: 3;
+        }
+        .sector-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.12rem 0.48rem;
+            border-radius: 6px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .sector-rettilineo { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+        .sector-anello     { background: rgba(59, 130, 246, 0.18); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.35); }
+        .sector-salti      { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+        .sector-lanci      { background: rgba(139, 92, 246, 0.18); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.35); }
+
+        /* ==========================================================================
            STRICT PRINT RESET — CRISP BLACK & WHITE PAPER SHEETS (A4)
            ========================================================================== */
         @media print {
@@ -766,12 +899,13 @@
 
             <div class="sidebar-label">Menu Principale</div>
             <div class="mb-2" id="nav-general">
-                <button class="nav-link w-100 text-start btn btn-sm mb-1 active" onclick="showOverview(); toggleMobileSidebar(false);">📊 Panoramica Meeting</button>
-                <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showCallRoom(); toggleMobileSidebar(false);">⏱ Call Room Live</button>
-                <button class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showNotes(); toggleMobileSidebar(false);">📝 Appunti & Dispositivo</button>
-                <button class="nav-link w-100 text-start btn btn-sm mb-1 text-info fw-semibold" onclick="syncWise()">🔄 Sincronizza WISE</button>
-                <button class="nav-link w-100 text-start btn btn-sm mb-1 text-success fw-semibold" onclick="showShoeControl(this); toggleMobileSidebar(false);">👟 Controllo Scarpe</button>
-                <button class="nav-link w-100 text-start btn btn-sm mb-1 text-danger fw-semibold" onclick="showAthleteSearch(this); toggleMobileSidebar(false);">🔍 Ricerca & Doping</button>
+                <button id="nav-overview" class="nav-link w-100 text-start btn btn-sm mb-1 active" onclick="showOverview(); toggleMobileSidebar(false);">📊 Panoramica Meeting</button>
+                <button id="nav-gantt" class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showGanttView(); toggleMobileSidebar(false);">📅 Gantt & Giornate</button>
+                <button id="nav-callroom" class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showCallRoom(); toggleMobileSidebar(false);">⏱ Call Room Live</button>
+                <button id="nav-notes" class="nav-link w-100 text-start btn btn-sm mb-1" onclick="showNotes(); toggleMobileSidebar(false);">📝 Appunti & Dispositivo</button>
+                <button id="nav-wise" class="nav-link w-100 text-start btn btn-sm mb-1 text-info fw-semibold" onclick="syncWise()">🔄 Sincronizza WISE</button>
+                <button id="nav-shoes" class="nav-link w-100 text-start btn btn-sm mb-1 text-success fw-semibold" onclick="showShoeControl(this); toggleMobileSidebar(false);">👟 Controllo Scarpe</button>
+                <button id="nav-search" class="nav-link w-100 text-start btn btn-sm mb-1 text-danger fw-semibold" onclick="showAthleteSearch(this); toggleMobileSidebar(false);">🔍 Ricerca & Doping</button>
             </div>
 
             <div class="px-1 flex-grow-1" id="race-list"></div>
@@ -828,6 +962,10 @@
         let activeRaceIndex = null;
         let callRoomTimer = null;
         let currentOverviewFilter = 'all';
+        let currentOverviewDayFilter = 'all';
+        let currentGanttDay = '1';
+        let currentGanttSector = 'all';
+        let currentCallRoomDay = 'all';
 
         
         window.__INJECTED_MEETING__ = {
@@ -940,6 +1078,22 @@
         }
         function isVerticalJump(name) {
             return isHighJump(name) || isPoleVault(name);
+        }
+        function isStraightTrack(name) {
+            if (isFieldEvent(name)) return false;
+            return /(?:^|\b)(50|60|80|100|110)\s*(?:m|metri|hs|h\b)/i.test(name) && !/4x|staffetta|1000/i.test(name);
+        }
+        function getTrackSector(name) {
+            if (isFieldEvent(name)) {
+                return isThrowEvent(name) ? 'lanci' : 'salti';
+            }
+            return isStraightTrack(name) ? 'rettilineo' : 'anello';
+        }
+        function getSectorLabel(sector) {
+            if (sector === 'rettilineo') return '⚡ Rettilineo';
+            if (sector === 'anello') return '🔄 Anello';
+            if (sector === 'salti') return '🦘 Salti';
+            return '🥏 Lanci';
         }
         function getFieldConfig(index) {
             const raw = localStorage.getItem('field_data_' + currentMeeting.id + '_' + index);
@@ -1073,17 +1227,20 @@
         async function showOverview() {
             clearActiveNav();
             activeRaceIndex = null;
-            document.querySelectorAll('#nav-general .nav-link')[0].classList.add('active');
+            document.getElementById('nav-overview')?.classList.add('active');
             
             let total = 0, anomaliesCount = 0, totalDurationMins = 0, completedRacesCount = 0;
             let countCorse = 0, countSalti = 0, countLanci = 0;
+            const dayCounts = { 1: 0, 2: 0, 3: 0, 4: 0 };
             
             const racesDb = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
             const timeMap = {};
             const compMap = {};
+            const dayMap = {};
             racesDb.forEach(r => {
                 timeMap[r.name] = r.scheduledTime || '';
                 compMap[r.name] = r.isCompleted;
+                dayMap[r.name] = r.day || 1;
             });
             
             let tableRows = '';
@@ -1110,15 +1267,24 @@
                         } catch(e) {}
                     }
                 }
-                const duration = estimateDuration(r.nome_gara, r.numero_iscritti, isMiddle, confHeats, confInterval);
+                const duration = Math.round(estimateDuration(r.nome_gara, r.numero_iscritti, isMiddle, confHeats, confInterval));
                 totalDurationMins += duration;
                 const anomalies = r.iscritti.filter(i => !i.accredito.trim()).length;
                 if (anomalies > 0) anomaliesCount++;
                 
                 const schedTime = timeMap[r.nome_gara] || '';
+                const raceDay = dayMap[r.nome_gara] || 1;
+                dayCounts[raceDay] = (dayCounts[raceDay] || 0) + 1;
                 const isComp = compMap[r.nome_gara];
                 if (isComp) completedRacesCount++;
+                const sector = getTrackSector(r.nome_gara);
                 
+                let endStr = '';
+                if (schedTime && schedTime.includes(':')) {
+                    const [hh, mm] = schedTime.split(':').map(Number);
+                    endStr = formatMinsToTime(hh * 60 + mm + duration);
+                }
+
                 let statoHtml = anomalies > 0
                     ? `<span class="status-pill status-pill-warning">⚠️ ${anomalies} anom.</span>`
                     : `<span class="status-pill status-pill-neutral">Pronta</span>`;
@@ -1159,18 +1325,29 @@
                     `;
                 }
                 
-                tableRows += `<tr class="overview-race-row" data-cat="${catKey}" data-anom="${anomalies > 0 ? '1' : '0'}" data-name="${r.nome_gara.toLowerCase()}">
-                    <td style="width: 135px;">
-                        <input type="time" class="form-control form-control-sm d-print-none tabular-nums fw-bold" value="${schedTime}" onchange="saveRaceTime(\`${r.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this)">
-                        <span class="d-none d-print-inline fw-bold fs-5 tabular-nums">${schedTime || '--:--'}</span>
+                tableRows += `<tr class="overview-race-row" data-cat="${catKey}" data-day="${raceDay}" data-anom="${anomalies > 0 ? '1' : '0'}" data-name="${r.nome_gara.toLowerCase()}">
+                    <td style="width: 195px;">
+                        <div class="d-flex align-items-center gap-1 d-print-none">
+                            <select class="form-select form-select-sm fw-bold px-2" style="width: 62px;" title="Giornata di gara" onchange="saveRaceDay(\`${r.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this)">
+                                <option value="1" ${raceDay === 1 ? 'selected' : ''}>G1</option>
+                                <option value="2" ${raceDay === 2 ? 'selected' : ''}>G2</option>
+                                <option value="3" ${raceDay === 3 ? 'selected' : ''}>G3</option>
+                                <option value="4" ${raceDay === 4 ? 'selected' : ''}>G4</option>
+                            </select>
+                            <input type="time" class="form-control form-control-sm tabular-nums fw-bold" value="${schedTime}" onchange="saveRaceTime(\`${r.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this, ${index})">
+                        </div>
+                        <span class="d-none d-print-inline fw-bold fs-6 tabular-nums">G${raceDay} · ${schedTime || '--:--'}</span>
+                        <div id="overview-end-hint-${index}" class="small text-muted tabular-nums mt-1 ${endStr ? '' : 'd-none'}" style="font-size: 0.72rem;">Fine stimata: <strong>${endStr}</strong></div>
                     </td>
                     <td class="fw-bold">
                         <a href="#" onclick="showRace(${index}, null); return false;" class="text-decoration-none ${isComp ? 'text-success' : ''}" style="color: var(--app-text); font-size: 0.95rem;">${r.nome_gara}</a>
                         ${extraRaceControls}
                     </td>
                     <td class="text-center tabular-nums fw-semibold">${r.numero_iscritti}</td>
-                    <td class="text-center"><span class="status-pill status-pill-neutral">${catLabel}</span></td>
-                    <td class="text-center tabular-nums">${Math.round(duration)} min</td>
+                    <td class="text-center">
+                        <span class="sector-badge sector-${sector}">${getSectorLabel(sector)}</span>
+                    </td>
+                    <td class="text-center tabular-nums">${duration} min</td>
                     <td class="text-end">${statoHtml}</td>
                 </tr>`;
             });
@@ -1178,6 +1355,7 @@
             const hours = Math.floor(totalDurationMins / 60);
             const mins = Math.round(totalDurationMins % 60);
             currentOverviewFilter = 'all';
+            currentOverviewDayFilter = 'all';
             
             document.getElementById('main-content').innerHTML = `
                 <div class="view-header">
@@ -1186,6 +1364,7 @@
                         <h2 class="view-title">${currentMeeting.name}</h2>
                     </div>
                     <div class="d-flex flex-wrap gap-2 d-print-none">
+                        <button class="btn btn-outline-info btn-sm fw-bold" onclick="showGanttView()">📅 Grafico Gantt & Rettilineo</button>
                         <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="window.print()">🖨️ Stampa Riepilogo Gare</button>
                         <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="showCallRoom()">⏱ Call Room Live →</button>
                     </div>
@@ -1225,12 +1404,18 @@
                 ${anomaliesCount > 0 ? '<div class="alert alert-warning py-2 px-3 mb-3 d-print-none small"><strong>⚠️ Attenzione:</strong> Alcune gare presentano atleti senza accredito (No Time / No Mark). Usa il filtro qui sotto per individuarle rapidamente.</div>' : ''}
 
                 <div class="filter-toolbar d-print-none">
-                    <div class="d-flex flex-wrap gap-1">
-                        <button class="filter-pill active" onclick="setOverviewFilter('all', this)">Tutte (${currentMeeting.data.length})</button>
-                        <button class="filter-pill" onclick="setOverviewFilter('corse', this)">Corse (${countCorse})</button>
-                        <button class="filter-pill" onclick="setOverviewFilter('salti', this)">Salti (${countSalti})</button>
-                        <button class="filter-pill" onclick="setOverviewFilter('lanci', this)">Lanci (${countLanci})</button>
-                        ${anomaliesCount > 0 ? `<button class="filter-pill text-warning" onclick="setOverviewFilter('anom', this)">⚠️ Con Anomalie (${anomaliesCount})</button>` : ''}
+                    <div class="d-flex flex-wrap align-items-center gap-1">
+                        <button class="filter-pill cat-pill active" onclick="setOverviewFilter('all', this)">Tutte (${currentMeeting.data.length})</button>
+                        <button class="filter-pill cat-pill" onclick="setOverviewFilter('corse', this)">Corse (${countCorse})</button>
+                        <button class="filter-pill cat-pill" onclick="setOverviewFilter('salti', this)">Salti (${countSalti})</button>
+                        <button class="filter-pill cat-pill" onclick="setOverviewFilter('lanci', this)">Lanci (${countLanci})</button>
+                        ${anomaliesCount > 0 ? `<button class="filter-pill cat-pill text-warning" onclick="setOverviewFilter('anom', this)">⚠️ Con Anomalie (${anomaliesCount})</button>` : ''}
+                        <span class="mx-1 text-muted">|</span>
+                        <button class="filter-pill day-pill active" onclick="setOverviewDayFilter('all', this)">Tutti i Giorni</button>
+                        <button class="filter-pill day-pill" onclick="setOverviewDayFilter('1', this)">Giorno 1</button>
+                        <button class="filter-pill day-pill" onclick="setOverviewDayFilter('2', this)">Giorno 2</button>
+                        <button class="filter-pill day-pill" onclick="setOverviewDayFilter('3', this)">Giorno 3</button>
+                        <button class="filter-pill day-pill" onclick="setOverviewDayFilter('4', this)">Giorno 4</button>
                     </div>
                     <div style="min-width: 220px;">
                         <input type="search" id="overview-search" class="form-control form-control-sm" placeholder="🔍 Cerca gara..." oninput="filterOverviewTable()">
@@ -1241,10 +1426,10 @@
                     <table class="table table-striped align-middle">
                         <thead class="table-dark">
                             <tr>
-                                <th>Orario (1ª Serie)</th>
+                                <th>Giorno & Orario</th>
                                 <th>Gara & Configurazione Rapida</th>
                                 <th class="text-center">Iscritti</th>
-                                <th class="text-center">Tipo</th>
+                                <th class="text-center">Settore / Tipo</th>
                                 <th class="text-center">Stima Durata</th>
                                 <th class="text-end">Stato</th>
                             </tr>
@@ -1259,7 +1444,14 @@
 
         window.setOverviewFilter = function(filter, btn) {
             currentOverviewFilter = filter;
-            document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            filterOverviewTable();
+        };
+
+        window.setOverviewDayFilter = function(day, btn) {
+            currentOverviewDayFilter = day;
+            document.querySelectorAll('.day-pill').forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');
             filterOverviewTable();
         };
@@ -1268,6 +1460,7 @@
             const q = (document.getElementById('overview-search')?.value || '').toLowerCase().trim();
             document.querySelectorAll('.overview-race-row').forEach(row => {
                 const cat = row.getAttribute('data-cat');
+                const day = row.getAttribute('data-day') || '1';
                 const anom = row.getAttribute('data-anom');
                 const name = row.getAttribute('data-name') || '';
                 let matchCat = true;
@@ -1276,15 +1469,317 @@
                 else if (currentOverviewFilter === 'lanci') matchCat = cat === 'lanci';
                 else if (currentOverviewFilter === 'anom') matchCat = anom === '1';
 
+                const matchDay = currentOverviewDayFilter === 'all' || day === String(currentOverviewDayFilter);
                 const matchQuery = !q || name.includes(q);
-                row.style.display = (matchCat && matchQuery) ? '' : 'none';
+                row.style.display = (matchCat && matchDay && matchQuery) ? '' : 'none';
             });
+        };
+
+        // ==========================================================================
+        // GANTT & MULTI-DAY TIMELINE VIEW (Issue #45)
+        // ==========================================================================
+        window.showGanttView = async function() {
+            clearActiveNav();
+            activeRaceIndex = null;
+            document.getElementById('nav-gantt')?.classList.add('active');
+
+            document.getElementById('main-content').innerHTML = `
+                <div class="view-header">
+                    <div>
+                        <div class="view-eyebrow">Pianificazione Oraria Multi-Giornata & Occupazione Pista / Pedane</div>
+                        <h2 class="view-title">📅 Gantt Evoluzione Gara & Disponibilità Rettilineo</h2>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 d-print-none">
+                        <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="window.print()">🖨️ Stampa Gantt</button>
+                        <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="showCallRoom()">⏱ Call Room Live →</button>
+                    </div>
+                </div>
+
+                <div class="filter-toolbar d-print-none">
+                    <div class="d-flex flex-wrap align-items-center gap-1" id="gantt-day-tabs">
+                        <button class="filter-pill gantt-day-pill ${currentGanttDay === '1' ? 'active' : ''}" onclick="setGanttDay('1', this)">Giorno 1</button>
+                        <button class="filter-pill gantt-day-pill ${currentGanttDay === '2' ? 'active' : ''}" onclick="setGanttDay('2', this)">Giorno 2</button>
+                        <button class="filter-pill gantt-day-pill ${currentGanttDay === '3' ? 'active' : ''}" onclick="setGanttDay('3', this)">Giorno 3</button>
+                        <button class="filter-pill gantt-day-pill ${currentGanttDay === '4' ? 'active' : ''}" onclick="setGanttDay('4', this)">Giorno 4</button>
+                        <button class="filter-pill gantt-day-pill ${currentGanttDay === 'all' ? 'active' : ''}" onclick="setGanttDay('all', this)">Tutte le Giornate</button>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-1" id="gantt-sector-tabs">
+                        <button class="filter-pill gantt-sec-pill ${currentGanttSector === 'all' ? 'active' : ''}" onclick="setGanttSector('all', this)">Tutti i Settori</button>
+                        <button class="filter-pill gantt-sec-pill ${currentGanttSector === 'rettilineo' ? 'active' : ''}" onclick="setGanttSector('rettilineo', this)">⚡ Rettilineo (Sprint/Hs)</button>
+                        <button class="filter-pill gantt-sec-pill ${currentGanttSector === 'anello' ? 'active' : ''}" onclick="setGanttSector('anello', this)">🔄 Anello</button>
+                        <button class="filter-pill gantt-sec-pill ${currentGanttSector === 'salti' ? 'active' : ''}" onclick="setGanttSector('salti', this)">🦘 Salti</button>
+                        <button class="filter-pill gantt-sec-pill ${currentGanttSector === 'lanci' ? 'active' : ''}" onclick="setGanttSector('lanci', this)">🥏 Lanci</button>
+                    </div>
+                </div>
+
+                <div id="gantt-status-banner"></div>
+                <div id="gantt-chart-container"></div>
+            `;
+
+            await renderGanttChart();
+        };
+
+        window.setGanttDay = function(day, btn) {
+            currentGanttDay = day;
+            document.querySelectorAll('.gantt-day-pill').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            renderGanttChart();
+        };
+
+        window.setGanttSector = function(sector, btn) {
+            currentGanttSector = sector;
+            document.querySelectorAll('.gantt-sec-pill').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            renderGanttChart();
+        };
+
+        window.renderGanttChart = async function() {
+            const container = document.getElementById('gantt-chart-container');
+            const banner = document.getElementById('gantt-status-banner');
+            if (!container || !currentMeeting) return;
+
+            const racesDb = await db.races.where('meetingId').equals(currentMeeting.id).toArray();
+            const dbMap = {};
+            const dayCounts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+            racesDb.forEach(r => {
+                dbMap[r.name] = r;
+                const d = r.day || 1;
+                if (r.scheduledTime) dayCounts[d] = (dayCounts[d] || 0) + 1;
+            });
+
+            // Update day pill labels with counts
+            document.querySelectorAll('.gantt-day-pill').forEach((btn, idx) => {
+                if (idx < 4) {
+                    const dNum = idx + 1;
+                    btn.textContent = `Giorno ${dNum} (${dayCounts[dNum] || 0})`;
+                }
+            });
+
+            const items = [];
+            currentMeeting.data.forEach((r, index) => {
+                const rec = dbMap[r.nome_gara] || {};
+                const day = rec.day || 1;
+                const schedTime = rec.scheduledTime || '';
+                const field = isFieldEvent(r.nome_gara);
+                const isMiddle = isMiddleDistance(r.nome_gara);
+                let confHeats = null, confInterval = null;
+                if (!field) {
+                    const savedTrack = localStorage.getItem('race_data_' + currentMeeting.id + '_' + index);
+                    if (savedTrack) {
+                        try {
+                            const td = JSON.parse(savedTrack);
+                            if (td.heats) confHeats = td.heats.length;
+                            if (td.heatInterval) confInterval = td.heatInterval;
+                        } catch(e) {}
+                    }
+                }
+                const duration = Math.max(5, Math.round(estimateDuration(r.nome_gara, r.numero_iscritti, isMiddle, confHeats, confInterval)));
+                const sector = getTrackSector(r.nome_gara);
+
+                let startMins = null;
+                let endMins = null;
+                if (schedTime && schedTime.includes(':')) {
+                    const [hh, mm] = schedTime.split(':').map(Number);
+                    startMins = hh * 60 + mm;
+                    endMins = startMins + duration;
+                }
+
+                items.push({
+                    index,
+                    name: r.nome_gara,
+                    iscritti: r.numero_iscritti,
+                    day,
+                    schedTime,
+                    startMins,
+                    endMins,
+                    duration,
+                    sector,
+                    isCompleted: !!rec.isCompleted
+                });
+            });
+
+            // Filter by day and sector
+            const filtered = items.filter(it => {
+                const matchDay = currentGanttDay === 'all' || String(it.day) === String(currentGanttDay);
+                const matchSec = currentGanttSector === 'all' || it.sector === currentGanttSector;
+                return matchDay && matchSec;
+            });
+
+            const scheduled = filtered.filter(it => it.startMins !== null).sort((a, b) => (a.day - b.day) || (a.startMins - b.startMins));
+            const unscheduled = filtered.filter(it => it.startMins === null);
+
+            // Detect Rettilineo windows & same-sector overlaps per day
+            const overlapIds = new Set();
+            const rettilineoWindows = [];
+            scheduled.forEach((a, i) => {
+                if (a.sector === 'rettilineo') {
+                    rettilineoWindows.push({ day: a.day, name: a.name.replace(/\s*-\s*Lista Partecipanti/i, ''), start: a.startMins, end: a.endMins });
+                }
+                for (let j = i + 1; j < scheduled.length; j++) {
+                    const b = scheduled[j];
+                    if (a.day === b.day && a.sector === b.sector && (a.sector === 'rettilineo' || a.sector === 'anello')) {
+                        if (a.startMins < b.endMins && b.startMins < a.endMins) {
+                            overlapIds.add(a.index);
+                            overlapIds.add(b.index);
+                        }
+                    }
+                }
+            });
+
+            if (banner) {
+                let bannerHtml = '';
+                if (rettilineoWindows.length > 0) {
+                    const winStrs = rettilineoWindows.map(w => `<strong>${formatMinsToTime(w.start)} → ${formatMinsToTime(w.end)}</strong> (${w.name})`).join(' · ');
+                    const lastFree = formatMinsToTime(Math.max(...rettilineoWindows.map(w => w.end)));
+                    bannerHtml += `
+                        <div class="alert alert-info py-2 px-3 mb-3 small d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>⚡ <strong>Occupazione Rettilineo (Sprint/Ostacoli):</strong> ${winStrs}</div>
+                            <span class="status-pill status-pill-success">✅ Rettilineo libero dalle ${lastFree}</span>
+                        </div>
+                    `;
+                }
+                if (overlapIds.size > 0) {
+                    bannerHtml += `
+                        <div class="alert alert-warning py-2 px-3 mb-3 small">
+                            ⚠️ <strong>Sovrapposizione Rilevata sulla Pista:</strong> Due o più gare sullo stesso settore (Rettilineo o Anello) si sovrappongono nell'orario (evidenziate con bordo rosso nel grafico).
+                        </div>
+                    `;
+                }
+                banner.innerHTML = bannerHtml;
+            }
+
+            if (scheduled.length === 0) {
+                container.innerHTML = `
+                    <div class="card p-4 text-center">
+                        <h5 class="fw-bold mb-2">Nessuna gara con orario assegnato in questa selezione</h5>
+                        <p class="text-muted small mb-0">Assegna l'orario e la giornata alle gare qui sotto o nella <a href="#" onclick="showOverview(); return false;">Panoramica Meeting</a> per visualizzare il grafico Gantt.</p>
+                    </div>
+                `;
+            } else {
+                // Group by day if 'all' is selected, otherwise single day block
+                const daysToRender = currentGanttDay === 'all'
+                    ? [...new Set(scheduled.map(s => s.day))].sort((a, b) => a - b)
+                    : [parseInt(currentGanttDay)];
+
+                let ganttHtml = '';
+                daysToRender.forEach(dNum => {
+                    const dayItems = scheduled.filter(s => s.day === dNum);
+                    if (dayItems.length === 0) return;
+
+                    const minStart = Math.floor(Math.min(...dayItems.map(s => s.startMins)) / 15) * 15 - 15;
+                    const maxEnd = Math.ceil(Math.max(...dayItems.map(s => s.endMins)) / 15) * 15 + 30;
+                    const totalSpan = Math.max(60, maxEnd - minStart);
+                    const stepMins = totalSpan > 240 ? 30 : 15;
+
+                    let ticksHtml = '';
+                    let gridlinesHtml = '';
+                    for (let t = minStart; t <= maxEnd; t += stepMins) {
+                        const leftPct = ((t - minStart) / totalSpan) * 100;
+                        if (leftPct >= 0 && leftPct <= 98) {
+                            ticksHtml += `<div class="gantt-tick" style="left: ${leftPct.toFixed(2)}%;">${formatMinsToTime(t)}</div>`;
+                            gridlinesHtml += `<div class="gantt-gridline" style="left: ${leftPct.toFixed(2)}%;"></div>`;
+                        }
+                    }
+
+                    ganttHtml += `
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="fw-bold mb-0">🗓️ Giorno ${dNum} — Evoluzione Oraria (${dayItems.length} gare programmate: ${formatMinsToTime(minStart + 15)} ÷ ${formatMinsToTime(maxEnd - 30)})</h5>
+                                <div class="d-flex flex-wrap gap-2 small">
+                                    <span class="sector-badge sector-rettilineo">⚡ Rettilineo</span>
+                                    <span class="sector-badge sector-anello">🔄 Anello</span>
+                                    <span class="sector-badge sector-salti">🦘 Salti</span>
+                                    <span class="sector-badge sector-lanci">🥏 Lanci</span>
+                                </div>
+                            </div>
+                            <div class="gantt-wrapper">
+                                <div class="gantt-Grid">
+                                    <div class="gantt-header-row">
+                                        <div class="gantt-label-col">Gara / Settore / Inizio → Fine</div>
+                                        <div class="gantt-timeline-col" style="min-height: 34px;">
+                                            ${ticksHtml}
+                                        </div>
+                                    </div>
+                    `;
+
+                    dayItems.forEach(it => {
+                        const leftPct = Math.max(0, ((it.startMins - minStart) / totalSpan) * 100);
+                        const widthPct = Math.max(1.5, Math.min(100 - leftPct, (it.duration / totalSpan) * 100));
+                        const startStr = formatMinsToTime(it.startMins);
+                        const endStr = formatMinsToTime(it.endMins);
+                        const cleanName = it.name.replace(/\s*-\s*Lista Partecipanti/i, '');
+                        const isOv = overlapIds.has(it.index);
+
+                        ganttHtml += `
+                            <div class="gantt-row" data-race-index="${it.index}">
+                                <div class="gantt-label-col">
+                                    <div class="d-flex justify-content-between align-items-center gap-1">
+                                        <a href="#" onclick="showRace(${it.index}, null); return false;" class="fw-bold text-truncate text-decoration-none" style="color: var(--app-text); font-size: 0.84rem;" title="${it.name}">${cleanName}</a>
+                                        <span class="sector-badge sector-${it.sector}">${getSectorLabel(it.sector)}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-1 small text-muted tabular-nums" style="font-size: 0.74rem;">
+                                        <span>🕒 <strong>${startStr} → ${endStr}</strong> (${it.duration}')</span>
+                                        <span>${it.iscritti} atl.</span>
+                                    </div>
+                                </div>
+                                <div class="gantt-timeline-col">
+                                    ${gridlinesHtml}
+                                    <div class="gantt-bar gantt-bar-${it.sector} ${isOv ? 'gantt-bar-overlap' : ''}" style="left: ${leftPct.toFixed(2)}%; width: ${widthPct.toFixed(2)}%;" title="${cleanName}: ${startStr} → ${endStr} (${it.duration} min)">
+                                        ${startStr} → ${endStr} (${it.duration}')
+                                    </div>
+                                    <span class="gantt-end-tag" style="left: ${(leftPct + widthPct).toFixed(2)}%;">Fine ${endStr}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    ganttHtml += `</div></div></div>`;
+                });
+
+                container.innerHTML = ganttHtml;
+            }
+
+            // Also show quick scheduling table for unscheduled races if any
+            if (unscheduled.length > 0) {
+                let unschedHtml = `
+                    <div class="card mt-4 d-print-none">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>⏱ Gare da Pianificare (${unscheduled.length} senza orario) — Assegna Giorno e Orario per aggiungerle al Gantt</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>Giorno</th><th>Orario Inizio</th><th>Gara</th><th>Settore</th><th>Durata Stimata</th></tr></thead>
+                                <tbody>
+                `;
+                unscheduled.forEach(u => {
+                    unschedHtml += `
+                        <tr>
+                            <td style="width: 90px;">
+                                <select class="form-select form-select-sm fw-bold" onchange="saveRaceDay(\`${u.name.replace(/'/g, '&apos;')}\`, this.value, this)">
+                                    <option value="1" ${u.day === 1 ? 'selected' : ''}>G1</option>
+                                    <option value="2" ${u.day === 2 ? 'selected' : ''}>G2</option>
+                                    <option value="3" ${u.day === 3 ? 'selected' : ''}>G3</option>
+                                    <option value="4" ${u.day === 4 ? 'selected' : ''}>G4</option>
+                                </select>
+                            </td>
+                            <td style="width: 130px;">
+                                <input type="time" class="form-control form-control-sm tabular-nums fw-bold" value="" onchange="saveRaceTime(\`${u.name.replace(/'/g, '&apos;')}\`, this.value, this, ${u.index})">
+                            </td>
+                            <td class="fw-bold">${u.name}</td>
+                            <td><span class="sector-badge sector-${u.sector}">${getSectorLabel(u.sector)}</span></td>
+                            <td class="tabular-nums">${u.duration} min</td>
+                        </tr>
+                    `;
+                });
+                unschedHtml += `</tbody></table></div></div>`;
+                container.insertAdjacentHTML('beforeend', unschedHtml);
+            }
         };
 
         async function showNotes() {
             clearActiveNav();
             activeRaceIndex = null;
-            document.querySelectorAll('#nav-general .nav-link')[2].classList.add('active');
+            document.getElementById('nav-notes')?.classList.add('active');
             
             const savedDefaultTdName = localStorage.getItem('default_td_name') || '';
             const noteData = await db.notes.get(currentMeeting.id) || {
@@ -1712,10 +2207,12 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             win.document.close();
         };
 
+        let activeCallRoomDay = 0;
+
         async function showCallRoom() {
             clearActiveNav();
             activeRaceIndex = null;
-            document.querySelectorAll('#nav-general .nav-link')[1].classList.add('active');
+            document.getElementById('nav-callroom')?.classList.add('active');
             
             // Get offsets or set defaults
             const getOff = (k, def) => parseInt(localStorage.getItem(k) || def);
@@ -1730,7 +2227,7 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             document.getElementById('main-content').innerHTML = `
                 <div class="view-header">
                     <div>
-                        <div class="view-eyebrow">Monitoraggio Sincronizzato per Serie & Pedana</div>
+                        <div class="view-eyebrow">Monitoraggio Sincronizzato per Serie, Pedana & Giornata</div>
                         <h2 class="view-title">🕒 Call Room Live Dashboard</h2>
                     </div>
                     <div class="d-flex flex-wrap align-items-center gap-2 d-print-none">
@@ -1739,6 +2236,15 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                         <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="window.print()">🖨️ Stampa Tabellone</button>
                         <button class="btn btn-primary btn-sm fw-bold" onclick="syncWise()">🔄 Sincronizza WISE</button>
                     </div>
+                </div>
+
+                <div class="filter-bar mb-3 d-print-none">
+                    <span class="small fw-bold text-muted me-1">📅 Giornata:</span>
+                    <button type="button" class="filter-pill ${activeCallRoomDay === 0 ? 'active' : ''}" onclick="setCallRoomDay(0, this)">Tutte le Giornate</button>
+                    <button type="button" class="filter-pill ${activeCallRoomDay === 1 ? 'active' : ''}" onclick="setCallRoomDay(1, this)">Giorno 1</button>
+                    <button type="button" class="filter-pill ${activeCallRoomDay === 2 ? 'active' : ''}" onclick="setCallRoomDay(2, this)">Giorno 2</button>
+                    <button type="button" class="filter-pill ${activeCallRoomDay === 3 ? 'active' : ''}" onclick="setCallRoomDay(3, this)">Giorno 3</button>
+                    <button type="button" class="filter-pill ${activeCallRoomDay === 4 ? 'active' : ''}" onclick="setCallRoomDay(4, this)">Giorno 4</button>
                 </div>
                 
                 <div class="card mb-4 d-print-none d-none" id="cr-settings-card">
@@ -1808,6 +2314,15 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             if (card) card.classList.toggle('d-none');
         };
 
+        window.setCallRoomDay = function(day, btn) {
+            activeCallRoomDay = day;
+            if (btn && btn.parentElement) {
+                btn.parentElement.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+            renderCallRoomTable();
+        };
+
         window.saveCallRoomSettings = function() {
             const types = ['corse', 'concorsi', 'alto', 'asta'];
             types.forEach(t => {
@@ -1847,9 +2362,12 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             races.forEach(r => {
                 if (!r.scheduledTime) return; // Skip races without time
                 if (r.isCompleted) return; // Skip completed
+                const raceDay = parseInt(r.day) || 1;
+                if (activeCallRoomDay > 0 && raceDay !== activeCallRoomDay) return;
                 
                 const [h, m] = r.scheduledTime.split(':').map(Number);
                 const baseRaceMins = h * 60 + m;
+                const dayBadge = `<span class="status-pill status-pill-neutral me-1" title="Giornata ${raceDay}">G${raceDay}</span>`;
                 
                 let cat = 'corse';
                 const lower = r.name.toLowerCase();
@@ -1894,10 +2412,11 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                             : (heatsCount > 1 ? `<small class="text-muted ms-1">(stima)</small>` : `<small class="text-muted ms-1">(${raceObj.numero_iscritti} atl.)</small>`);
                         
                         rowsData.push({
+                            raceDay,
                             raceMins: heatRaceMins,
                             timeStr: formatMinsToTime(heatRaceMins),
                             subTimeNote: heatsCount > 1 ? `Serie ${i+1} (+${i * heatInterval}')` : '',
-                            nameHtml: `<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none fw-bold" style="color: var(--app-text);">${r.name}</a> ${subLabel} ${athInfo}`,
+                            nameHtml: `${dayBadge}<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none fw-bold" style="color: var(--app-text);">${r.name}</a> ${subLabel} ${athInfo}`,
                             o
                         });
                     }
@@ -1915,18 +2434,19 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
                         }
                     }
                     rowsData.push({
+                        raceDay,
                         raceMins: baseRaceMins,
                         timeStr: r.scheduledTime,
                         subTimeNote: '',
                         nameHtml: raceIndex > -1
-                            ? `<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none fw-bold" style="color: var(--app-text);">${r.name}</a> ${groupBadge}`
-                            : `<span class="fw-bold">${r.name}</span>`,
+                            ? `${dayBadge}<a href="#" onclick="showRace(${raceIndex}, null); return false;" class="text-decoration-none fw-bold" style="color: var(--app-text);">${r.name}</a> ${groupBadge}`
+                            : `${dayBadge}<span class="fw-bold">${r.name}</span>`,
                         o
                     });
                 }
             });
             
-            rowsData.sort((a, b) => a.raceMins - b.raceMins);
+            rowsData.sort((a, b) => (a.raceDay !== b.raceDay ? a.raceDay - b.raceDay : a.raceMins - b.raceMins));
 
             let cntCr1 = 0, cntCr2 = 0, cntTrack = 0, cntLive = 0;
             
@@ -2091,16 +2611,26 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             
             const raceDb = await db.races.get(currentMeeting.id + '_' + race.nome_gara);
             const schedTime = raceDb ? raceDb.scheduledTime : '';
+            const raceDay = raceDb && raceDb.day ? parseInt(raceDb.day) : 1;
+            const sector = getTrackSector(race.nome_gara);
+            const sectorLabel = getSectorLabel(sector);
             
             let html = `<div class="view-header">
                 <div>
-                    <div class="view-eyebrow">${field ? 'Concorsi · Regola WA TR 25' : 'Corse su Pista · Regola WA TR 20'} · ${race.numero_iscritti} Iscritti</div>
+                    <div class="view-eyebrow">${field ? 'Concorsi · Regola WA TR 25' : 'Corse su Pista · Regola WA TR 20'} · ${race.numero_iscritti} Iscritti · <span class="sector-badge sector-${sector}">${sectorLabel}</span></div>
                     <h2 class="view-title">${race.nome_gara}</h2>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <span id="est-time-${index}" class="status-pill status-pill-info fs-6 tabular-nums">⏱ Stima: ${Math.round(estTime)} min</span>
                     <div class="input-group input-group-sm d-inline-flex w-auto d-print-none">
-                        <span class="input-group-text fw-semibold">Orario (1ª Serie/Gara):</span>
+                        <span class="input-group-text fw-semibold">Giornata:</span>
+                        <select class="form-select form-select-sm fw-bold" id="sched-day-${index}" style="max-width: 95px;" onchange="saveRaceDay(\`${race.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this, ${index})">
+                            <option value="1" ${raceDay === 1 ? 'selected' : ''}>Giorno 1</option>
+                            <option value="2" ${raceDay === 2 ? 'selected' : ''}>Giorno 2</option>
+                            <option value="3" ${raceDay === 3 ? 'selected' : ''}>Giorno 3</option>
+                            <option value="4" ${raceDay === 4 ? 'selected' : ''}>Giorno 4</option>
+                        </select>
+                        <span class="input-group-text fw-semibold">Orario:</span>
                         <input type="time" class="form-control tabular-nums fw-bold" id="sched-time-${index}" value="${schedTime}" onchange="saveRaceTime(\`${race.nome_gara.replace(/'/g, '&apos;')}\`, this.value, this, ${index})">
                     </div>
                 </div>
@@ -2217,24 +2747,69 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
         window.saveRaceTime = async function(name, timeVal, inputElem, raceIndex) {
             name = name.replace(/&apos;/g, "'");
             const r = await db.races.get(currentMeeting.id + '_' + name);
-            if(r) {
+            let raceDay = 1;
+            if (r) {
                 r.scheduledTime = timeVal;
+                raceDay = parseInt(r.day) || 1;
                 await db.races.put(r);
             }
-            if(inputElem && inputElem.nextElementSibling) {
-                inputElem.nextElementSibling.textContent = timeVal || '--:--';
+            if (inputElem && inputElem.parentElement) {
+                const printSpan = inputElem.parentElement.querySelector('.d-print-inline');
+                if (printSpan) printSpan.textContent = `G${raceDay} · ${timeVal || '--:--'}`;
             }
-            if (raceIndex !== undefined && !isFieldEvent(name)) {
-                renderTrackHeats(raceIndex);
+            if (raceIndex !== undefined) {
+                const hintEl = document.getElementById('overview-end-hint-' + raceIndex);
+                if (hintEl && currentMeeting.data[raceIndex]) {
+                    if (timeVal) {
+                        const raceObj = currentMeeting.data[raceIndex];
+                        const dur = Math.max(4, Math.round(estimateDuration(raceObj.nome_gara, raceObj.numero_iscritti, isMiddleDistance(raceObj.nome_gara))));
+                        const [hh, mm] = timeVal.split(':').map(Number);
+                        const endStr = formatMinsToTime(hh * 60 + mm + dur);
+                        const isRect = isStraightTrack(raceObj.nome_gara);
+                        hintEl.innerHTML = `🏁 Fine stimata: <strong>${endStr}</strong>${isRect ? ' · <span style="color:#a78bfa;">⚡ Rettilineo libero ' + endStr + '</span>' : ''}`;
+                    } else {
+                        hintEl.innerHTML = '';
+                    }
+                }
+                if (!isFieldEvent(name) && document.getElementById('results-' + raceIndex)) {
+                    renderTrackHeats(raceIndex);
+                }
+            }
+            if (document.getElementById('gantt-chart-container')) {
+                renderGanttChart();
             }
         }
+
+        window.saveRaceDay = async function(name, dayVal, selectElem, raceIndex) {
+            name = name.replace(/&apos;/g, "'");
+            const dNum = parseInt(dayVal) || 1;
+            const r = await db.races.get(currentMeeting.id + '_' + name);
+            let timeVal = '';
+            if (r) {
+                r.day = dNum;
+                timeVal = r.scheduledTime || '';
+                await db.races.put(r);
+            }
+            if (selectElem) {
+                const tr = selectElem.closest('tr');
+                if (tr) tr.setAttribute('data-day', String(dNum));
+                const printSpan = selectElem.parentElement?.querySelector('.d-print-inline');
+                if (printSpan) printSpan.textContent = `G${dNum} · ${timeVal || '--:--'}`;
+            }
+            if (document.getElementById('gantt-chart-container')) {
+                renderGanttChart();
+            }
+            if (document.getElementById('overview-races-tbody')) {
+                filterOverviewTable();
+            }
+        };
 
                 
         window.showAthleteSearch = function(btn) {
             clearActiveNav();
             activeRaceIndex = null;
             if(btn) btn.classList.add('active');
-            else document.querySelectorAll('#nav-general .nav-link')[5].classList.add('active');
+            else document.getElementById('nav-search')?.classList.add('active');
             
             let h = `
             <div class="view-header">
@@ -2300,7 +2875,7 @@ Gli attrezzi personali dovranno essere consegnati presso l'ufficio del Direttore
             clearActiveNav();
             activeRaceIndex = null;
             if(btn) btn.classList.add('active');
-            else document.querySelectorAll('#nav-general .nav-link')[4].classList.add('active');
+            else document.getElementById('nav-shoes')?.classList.add('active');
             
             let h = `
             <div class="view-header">
